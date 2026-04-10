@@ -3,6 +3,7 @@ import { IRSVP, RSVP, RSVPStatus } from "../model/rsvp";
 export interface IRSVPRepository {
     create(eventId: number, userId: number, status: string): void;
     findById(id: number): IRSVP | null;
+    findByEventId(eventId: number): IRSVP[];
     update(id: number, status: string): IRSVP;
     delete(id: number): void;
     findAll(): IRSVP[];
@@ -18,6 +19,9 @@ class RSVPRepository implements IRSVPRepository {
     }
     findById(id: number): IRSVP | null {
         return this.rsvps.find(r => r.id === id) || null;
+    }
+    findByEventId(eventId: number): IRSVP[] {
+        return this.rsvps.filter(r => r.eventId === eventId);
     }
     update(id: number, status: RSVPStatus): IRSVP {
         const rsvp = this.rsvps.find(r => r.id === id);
