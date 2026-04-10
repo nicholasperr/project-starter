@@ -21,7 +21,7 @@ class EventRepository implements IEventRepository {
     private events: IEvent[] = [];
     private nextId: number = 1;
 
-    create( title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number, startDatetime: Date, endDatetime: Date, organizerId: number): void {
+    create( title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number | null = null , startDatetime: Date, endDatetime: Date, organizerId: number): void {
         const event = new Event(this.nextId++, title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId);
         this.events.push(event);
     }

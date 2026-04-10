@@ -6,7 +6,7 @@ export type UpdateEventParams = {
     location? : string,
     category? : Category,
     status? : EventStatus,
-    capacity? : number,
+    capacity? : number | null,
     startDatetime? : Date,
     endDatetime? : Date
 }
@@ -17,7 +17,7 @@ export interface IEvent {
     location: string;
     categrory: Category;
     status: EventStatus;
-    capacity: number;
+    capacity: number | null;
     startDatetime: Date;
     endDatetime: Date;
     organizerId: number;
@@ -33,14 +33,14 @@ export class Event implements IEvent {
     location: string;
     categrory: Category;
     status: EventStatus;
-    capacity: number;
+    capacity: number | null;
     startDatetime: Date;
     endDatetime: Date;
     organizerId: number;
     createdAt: Date;
     updatedAt: Date;
 
-    constructor(id: number, title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number, startDatetime: Date, endDatetime: Date, organizerId: number) {
+    constructor(id: number, title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number | null = null, startDatetime: Date, endDatetime: Date, organizerId: number) {
         this.id = id;
         this.title = title;
         this.description = description
