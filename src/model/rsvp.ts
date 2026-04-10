@@ -10,7 +10,6 @@ export interface IRSVP {
 }
 
 export class RSVP implements IRSVP {
-    static nextId = 1;
     id: number;
     eventId: number;
     userId: number;
@@ -18,8 +17,8 @@ export class RSVP implements IRSVP {
     createdAt: Date;
     
 
-    constructor(eventId: number, userId: number, status: RSVPStatus) {
-        this.id = RSVP.nextId++;
+    constructor(id: number,eventId: number, userId: number, status: RSVPStatus = 'waitlisted') {
+        this.id = id;
         this.eventId = eventId;
         this.userId = userId;
         this.status = status;
