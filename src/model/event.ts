@@ -1,6 +1,6 @@
-export type Category = '';
+export type Category = 'music' | 'sports' | 'academic' | 'social' | 'food' | 'arts' | 'networking' | 'other';
 export type EventStatus = 'draft' | 'published' | 'cancelled' | 'past';
-type UpdateEventParams = {
+export type UpdateEventParams = {
     title? : string,
     description? : string,
     location? : string,
@@ -23,11 +23,10 @@ export interface IEvent {
     organizerId: number;
     createdAt: Date;
     updatedAt: Date;
-    updateEvent({}): void;
+    updateEvent(params: UpdateEventParams): void;
 }
 
 export class Event implements IEvent {
-    static nextId = 1;
     id: number;
     title: string;
     description: string;
@@ -41,8 +40,8 @@ export class Event implements IEvent {
     createdAt: Date;
     updatedAt: Date;
 
-    constructor(title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number, startDatetime: Date, endDatetime: Date, organizerId: number) {
-        this.id = Event.nextId++;
+    constructor(id: number, title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number, startDatetime: Date, endDatetime: Date, organizerId: number) {
+        this.id = id;
         this.title = title;
         this.description = description
         this.location = location;
@@ -67,7 +66,7 @@ export class Event implements IEvent {
             startDatetime = this.startDatetime, 
             endDatetime = this.endDatetime,
         } = params;
-        
+
         this.title = title;
         this.description = description
         this.location = location;
