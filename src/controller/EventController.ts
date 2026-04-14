@@ -16,3 +16,7 @@ class EventController implements IEventController {
         console.log("Displaying event creation form...");
     }
 }
+
+export const CreateEventController = (eventService: IEventService): IEventController => {
+    return new EventController(eventService);
+}
