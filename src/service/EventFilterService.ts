@@ -1,0 +1,1 @@
+export type EventTimeFrame = "all_upcoming" | "this_week" | "this_weekend"
