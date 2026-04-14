@@ -5,10 +5,8 @@ import { IRSVPRepository } from "../repository/RSVPRepository";
 
 export interface IEventService {
     createEvent( title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number, startDatetime: Date, endDatetime: Date, organizerId: number): void;
-    getEventById(eventId: number): IEvent | null;
-    getAllEvents(): IEvent[] | null;
-    updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number, startDatetime?: Date, endDatetime?: Date): void;
-    deleteEvent(eventId: number): void;
+    getEventById(eventId: number, currentUserId?: number, isAdmin?: boolean): IEvent | null;    getAllEvents(): IEvent[] | null;
+    updateEvent(eventId: number, currentUserId: number, isAdmin: boolean, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number, startDatetime?: Date, endDatetime?: Date): void;    deleteEvent(eventId: number): void;
     createRSVP(eventId: number, userId: number, status: RSVPStatus): void;
     getRSVPsForEvent(eventId: number): IRSVP[];
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): void;
@@ -23,13 +21,36 @@ class EventService implements IEventService {
     createEvent( title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number, startDatetime: Date, endDatetime: Date, organizerId: number) {
         this.eventRepository.create(title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId)
     }
-    getEventById(eventId: number) {
-        return this.eventRepository.findById(eventId);
+    getEventById(eventId: number, currentUserId?: number, isAdmin?: boolean) {
+        const event = this.eventRepository.findById(eventId);
+        if (!event) return null;
+
+        if (event.status === 'published') {
+            return event;
+        }
+
+        // Check if current user has permission to view non-published event
+        if (currentUserId && (event.organizerId === currentUserId || isAdmin)) {
+            return event;
+        }
+
+        return null; 
     }
+
     getAllEvents() {
         return this.eventRepository.findAll();
     }
-    updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number, startDatetime?: Date, endDatetime?: Date) {
+    updateEvent(eventId: number, currentUserId: number, isAdmin: boolean, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number, startDatetime?: Date, endDatetime?: Date) {
+        const event = this.eventRepository.findById(eventId);
+        if (!event) {
+            throw new Error("Event not found");
+        }
+
+        // Authorization Check
+        if (event.organizerId !== currentUserId && !isAdmin) {
+            throw new Error("Unauthorized: You do not have permission to modify this event.");
+        }
+
         const params = { title, description, location, category, status, capacity, startDatetime, endDatetime };
         this.eventRepository.update(eventId, params);
     }
