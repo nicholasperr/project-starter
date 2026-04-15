@@ -17,7 +17,7 @@ export interface IEventRepository {
     findAll(): IEvent[];
 }
 
-class EventRepository implements IEventRepository {
+export class EventRepository implements IEventRepository {
     private events: IEvent[] = [];
     private nextId: number = 1;
 
@@ -42,4 +42,8 @@ class EventRepository implements IEventRepository {
     findAll(): IEvent[] {
         return this.events;
     }
+}
+
+export const CreateEventRepository = () => {
+    return new EventRepository();
 }
