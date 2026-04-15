@@ -10,6 +10,8 @@ import type { ILoggingService } from "./service/LoggingService";
 import { CreateEventRepository } from "./repository/EventRepository";
 import { CreateEventFilterService } from "./service/EventFilterService";
 import { CreateEventFilterController } from "./controller/EventFilterController";
+import { CreateEventSearchService } from "./service/EventSearchService";
+import { CreateEventSearchController } from "./controller/EventSearchController";
 
 export function createComposedApp(logger?: ILoggingService): IApp {
   const resolvedLogger = logger ?? CreateLoggingService();
@@ -23,6 +25,8 @@ export function createComposedApp(logger?: ILoggingService): IApp {
   const eventRepository = CreateEventRepository();
   const eventFilterService = CreateEventFilterService(eventRepository);
   const eventFilterController = CreateEventFilterController(eventFilterService);
+  const eventSearchService = CreateEventSearchService(eventRepository)
+  const eventSearchController = CreateEventSearchController(eventSearchService);
 
-  return CreateApp(authController, resolvedLogger, eventFilterController);
+  return CreateApp(authController, resolvedLogger, eventFilterController, eventSearchController);
 }

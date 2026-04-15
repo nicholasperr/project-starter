@@ -17,6 +17,8 @@ import {
   touchAppSession,
 } from "./session/AppSession";
 import { ILoggingService } from "./service/LoggingService";
+import { IEventFilterController } from "./controller/EventFilterController";
+import { IEventSearchController } from "./controller/EventSearchController";
 
 type AsyncRequestHandler = RequestHandler;
 
@@ -36,6 +38,8 @@ class ExpressApp implements IApp {
   constructor(
     private readonly authController: IAuthController,
     private readonly logger: ILoggingService,
+    private readonly eventFilterController: IEventFilterController,
+    private readonly eventSearchController: IEventSearchController,
   ) {
     this.app = express();
     this.registerMiddleware();
@@ -253,6 +257,28 @@ class ExpressApp implements IApp {
       }),
     );
 
+    this.app.get(
+      "/events",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        this.eventFilterController.getFilteredEvents(req, res);
+      })
+    );
+
+    this.app.get(
+      "/events/search",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        this.eventSearchController.searchEvents(req, res);
+      })
+    );
+
     // ── Error handler ────────────────────────────────────────────────
 
     this.app.use((err: unknown, _req: Request, res: Response, _next: (value?: unknown) => void) => {
@@ -273,6 +299,8 @@ class ExpressApp implements IApp {
 export function CreateApp(
   authController: IAuthController,
   logger: ILoggingService,
+  eventFilterController: IEventFilterController,
+  eventSearchController: IEventSearchController,
 ): IApp {
-  return new ExpressApp(authController, logger);
+  return new ExpressApp(authController, logger, eventFilterController, eventSearchController);
 }
