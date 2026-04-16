@@ -201,7 +201,9 @@ class EventController implements IEventController {
         }
         if (session.authenticatedUser?.userId !== result.value.organizerId) {
             res.status(403).render("partials/error", {
-                message: "You do not have permission to edit this event",});
+                message: "You do not have permission to edit this event",
+                layout: false,
+            });
             return;
         }
 
