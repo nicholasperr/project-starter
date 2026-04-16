@@ -20,7 +20,7 @@ export interface IEvent {
     capacity: number | null;
     startDatetime: Date;
     endDatetime: Date;
-    organizerId: number;
+    organizerId: string;
     createdAt: Date;
     updatedAt: Date;
     updateEvent(params: UpdateEventParams): void;
@@ -36,11 +36,11 @@ export class Event implements IEvent {
     capacity: number | null;
     startDatetime: Date;
     endDatetime: Date;
-    organizerId: number;
+    organizerId: string;
     createdAt: Date;
     updatedAt: Date;
 
-    constructor(id: number, title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number | null = null, startDatetime: Date, endDatetime: Date, organizerId: number) {
+    constructor(id: number, title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number | null = null, startDatetime: Date, endDatetime: Date, organizerId: string) {
         this.id = id;
         this.title = title;
         this.description = description

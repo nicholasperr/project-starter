@@ -17,6 +17,7 @@ import {
   touchAppSession,
 } from "./session/AppSession";
 import { ILoggingService } from "./service/LoggingService";
+import { IEventController } from "./controller/EventController";
 
 type AsyncRequestHandler = RequestHandler;
 
@@ -33,8 +34,10 @@ function sessionStore(req: Request): AppSessionStore {
 class ExpressApp implements IApp {
   private readonly app: express.Express;
 
+  // now includes eventController so routes can call RSVP logic
   constructor(
     private readonly authController: IAuthController,
+    private readonly eventController: IEventController,
     private readonly logger: ILoggingService,
   ) {
     this.app = express();
@@ -270,9 +273,11 @@ class ExpressApp implements IApp {
   }
 }
 
+// updated to pass eventController into app
 export function CreateApp(
   authController: IAuthController,
+  eventController: IEventController,
   logger: ILoggingService,
 ): IApp {
-  return new ExpressApp(authController, logger);
+  return new ExpressApp(authController, eventController, logger);
 }

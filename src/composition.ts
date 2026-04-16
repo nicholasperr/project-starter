@@ -5,18 +5,30 @@ import { CreateInMemoryUserRepository } from "./auth/InMemoryUserRepository";
 import { CreatePasswordHasher } from "./auth/PasswordHasher";
 import { CreateApp } from "./app";
 import type { IApp } from "./contracts";
+
+import { CreateEventController } from "./controller/EventController";
+import { CreateEventRepository } from "./repository/EventRepository";
+import { CreateRSVPRepository } from "./repository/RSVPRepository";
 import { CreateLoggingService } from "./service/LoggingService";
-import type { ILoggingService } from "./service/LoggingService";
+import { CreateEventService } from "./service/EventService";
 
-export function createComposedApp(logger?: ILoggingService): IApp {
-  const resolvedLogger = logger ?? CreateLoggingService();
+export function createComposedApp(): IApp {
 
-  // Authentication & authorization wiring
-  const authUsers = CreateInMemoryUserRepository();
-  const passwordHasher = CreatePasswordHasher();
-  const authService = CreateAuthService(authUsers, passwordHasher);
-  const adminUserService = CreateAdminUserService(authUsers, passwordHasher);
-  const authController = CreateAuthController(authService, adminUserService, resolvedLogger);
+    const logger = CreateLoggingService();
 
-  return CreateApp(authController, resolvedLogger);
+    // auth setup
+    const userRepo = CreateInMemoryUserRepository();
+    const passwordHasher = CreatePasswordHasher();
+    const authService = CreateAuthService(userRepo, passwordHasher);
+    const adminService = CreateAdminUserService(userRepo, passwordHasher);
+    const authController = CreateAuthController(authService, adminService, logger);
+
+    // event + RSVP setup
+    const eventRepo = CreateEventRepository();
+    const rsvpRepo = CreateRSVPRepository();
+    const eventService = CreateEventService(eventRepo, rsvpRepo);
+    const eventController = CreateEventController(eventService, logger);
+
+    // create app with everything wired
+    return CreateApp(authController, eventController, logger);
 }
