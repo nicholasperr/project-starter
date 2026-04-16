@@ -2,6 +2,7 @@ import { Category, EventStatus, IEvent } from "../model/event";
 import { IRSVP, RSVPStatus } from "../model/rsvp";
 import { IEventRepository } from "../repository/EventRepository";
 import { IRSVPRepository } from "../repository/RSVPRepository";
+import { Ok, Err, type Result } from "../lib/result";
 
 export interface IEventService {
     createEvent( title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number, startDatetime: Date, endDatetime: Date, organizerId: number): void;
@@ -13,7 +14,7 @@ export interface IEventService {
     getRSVPsForEvent(eventId: number): IRSVP[];
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): void;
     deleteRSVP(eventId: number, userId: string): void;
-
+    toggleRSVP(eventId: number, userId: number): Result<string, string>;
 }
 
 class EventService implements IEventService {
@@ -46,7 +47,85 @@ class EventService implements IEventService {
         this.rsvpRepository.update(eventId, status);
     }
     deleteRSVP(eventId: number) {
-        this.rsvpRepository.delete(eventId);
+    this.rsvpRepository.delete(eventId);
+    }
+
+    // handles RSVP behavior ()
+    // covers: new RSVP, cancel existing, and reactivating cancelled
+    toggleRSVP(eventId: number, userId: number): Result<string, string> {
+
+        // first get the event to make sure it exists
+        const event = this.eventRepository.findById(eventId);
+
+        if (!event) {
+            // if event doesn't exist, return an error
+            return Err("Event not found");
+        }
+
+        // get all RSVPs for this event
+        const allRSVPs = this.rsvpRepository.findByEventId(eventId);
+
+        // check if this user already has an RSVP
+        const existing = allRSVPs.find(r => r.userId === userId);
+
+        // CASE 1: user has no RSVP yet → create one
+        if (!existing) {
+
+            // default to going
+            let status: RSVPStatus = "going";
+
+            // if event has a capacity, check if it's full
+            if (event.capacity !== null) {
+
+                // count how many people are currently going
+                const goingCount = allRSVPs.filter(r => r.status === "going").length;
+
+                // if full, put user on waitlist instead
+                if (goingCount >= event.capacity) {
+                    status = "waitlisted";
+                }
+            }
+
+            // create the RSVP with the correct status
+            this.rsvpRepository.create(eventId, userId, status);
+
+            return Ok(status);
+        }
+
+        // CASE 2: user is already going or waitlisted → cancel it
+        if (existing.status === "going" || existing.status === "waitlisted") {
+
+            // update status to cancelled
+            this.rsvpRepository.update(existing.id, "cancelled");
+
+            return Ok("cancelled");
+        }
+
+        // CASE 3: RSVP is cancelled → reactivate it
+        if (existing.status === "cancelled") {
+
+            // default to going again
+            let status: RSVPStatus = "going";
+
+            // check capacity again before reactivating
+            if (event.capacity !== null) {
+
+                const goingCount = allRSVPs.filter(r => r.status === "going").length;
+
+                // if full, user goes back to waitlist
+                if (goingCount >= event.capacity) {
+                    status = "waitlisted";
+                }
+            }
+
+            // update the existing RSVP with the new status
+            this.rsvpRepository.update(existing.id, status);
+
+            return Ok(status);
+        }
+
+        // fallback (should not really happen)
+        return Err("Invalid state");
     }
 
 }
