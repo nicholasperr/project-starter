@@ -21,7 +21,14 @@ class EventFilterController implements IEventFilterController {
             return;
         }
         
-        res.json(result.value);
+        res.render("events/index", {
+            events: result.value,
+            category: category ?? null,
+            timeframe: timeframe ?? null, 
+            query: null,
+            session: (req as any).session,
+            pageError: null
+        });
         
     }
 }

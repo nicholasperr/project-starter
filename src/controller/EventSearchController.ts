@@ -19,7 +19,14 @@ class EventSearchController implements IEventSearchController {
             return;
         }
 
-        res.json(result.value);
+        res.render("events/index", {
+            events: result.value,
+            category: null,
+            timeframe: null,
+            query: query,
+            session: (req as any).session,
+            pageError: null
+        });
     }
 }
 
