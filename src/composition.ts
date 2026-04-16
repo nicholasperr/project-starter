@@ -10,8 +10,6 @@ import { CreateEventController } from "./controller/EventController";
 import { CreateEventRepository } from "./repository/EventRepository";
 import { CreateRSVPRepository } from "./repository/RSVPRepository";
 import { CreateLoggingService } from "./service/LoggingService";
-import type { ILoggingService } from "./service/LoggingService";
-import { CreateEventRepository } from "./repository/EventRepository";
 import { CreateEventFilterService } from "./service/EventFilterService";
 import { CreateEventFilterController } from "./controller/EventFilterController";
 import { CreateEventSearchService } from "./service/EventSearchService";
@@ -29,18 +27,16 @@ export function createComposedApp(): IApp {
     const adminService = CreateAdminUserService(userRepo, passwordHasher);
     const authController = CreateAuthController(authService, adminService, logger);
 
-  // Authentication & authorization wiring
-  const authUsers = CreateInMemoryUserRepository();
-  const passwordHasher = CreatePasswordHasher();
-  const authService = CreateAuthService(authUsers, passwordHasher);
-  const adminUserService = CreateAdminUserService(authUsers, passwordHasher);
-  const authController = CreateAuthController(authService, adminUserService, resolvedLogger);
-  const eventRepository = CreateEventRepository();
-  const eventFilterService = CreateEventFilterService(eventRepository);
-  const eventFilterController = CreateEventFilterController(eventFilterService);
-  const eventSearchService = CreateEventSearchService(eventRepository)
-  const eventSearchController = CreateEventSearchController(eventSearchService);
-  const eventController = CreateEventController(eventService, logger);
+    // event setup
+    const eventRepository = CreateEventRepository();
+    const rsvpRepository = CreateRSVPRepository();
+    const eventService = CreateEventService(eventRepository, rsvpRepository);
+    const eventController = CreateEventController(eventService,logger);
 
-  return CreateApp(authController, eventController, resolvedLogger, eventFilterController, eventSearchController);
+    const eventFilterService = CreateEventFilterService(eventRepository);
+    const eventFilterController = CreateEventFilterController(eventFilterService);
+    const eventSearchService = CreateEventSearchService(eventRepository);
+    const eventSearchController = CreateEventSearchController(eventSearchService);
+
+    return CreateApp(authController, eventController, logger, eventFilterController, eventSearchController);
 }
