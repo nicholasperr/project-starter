@@ -19,6 +19,7 @@ import {
 import { ILoggingService } from "./service/LoggingService";
 import { IEventFilterController } from "./controller/EventFilterController";
 import { IEventSearchController } from "./controller/EventSearchController";
+import { IEventController } from "./controller/EventController";
 
 type AsyncRequestHandler = RequestHandler;
 
@@ -35,8 +36,10 @@ function sessionStore(req: Request): AppSessionStore {
 class ExpressApp implements IApp {
   private readonly app: express.Express;
 
+  // now includes eventController so routes can call RSVP logic
   constructor(
     private readonly authController: IAuthController,
+    private readonly eventController: IEventController,
     private readonly logger: ILoggingService,
     private readonly eventFilterController: IEventFilterController,
     private readonly eventSearchController: IEventSearchController,
@@ -296,11 +299,13 @@ class ExpressApp implements IApp {
   }
 }
 
+// updated to pass eventController into app
 export function CreateApp(
   authController: IAuthController,
+  eventController: IEventController,
   logger: ILoggingService,
   eventFilterController: IEventFilterController,
   eventSearchController: IEventSearchController,
 ): IApp {
-  return new ExpressApp(authController, logger, eventFilterController, eventSearchController);
+  return new ExpressApp(authController, eventController, logger, eventFilterController, eventSearchController);
 }

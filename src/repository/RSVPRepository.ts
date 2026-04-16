@@ -1,7 +1,7 @@
 import { IRSVP, RSVP, RSVPStatus } from "../model/rsvp";
 
 export interface IRSVPRepository {
-    create(eventId: number, userId: number, status: string): void;
+    create(eventId: number, userId: string, status: string): void;
     findById(id: number): IRSVP | null;
     findByEventId(eventId: number): IRSVP[];
     update(id: number, status: string): IRSVP;
@@ -13,7 +13,7 @@ class RSVPRepository implements IRSVPRepository {
     private rsvps: IRSVP[] = []
     private nextId: number = 1;
 
-    create(eventId: number, userId: number, status?: string): void {
+    create(eventId: number, userId: string, status?: string): void {
         const rsvp = new RSVP(this.nextId++, eventId, userId, status as RSVPStatus | undefined);
         this.rsvps.push(rsvp);
     }
@@ -37,4 +37,9 @@ class RSVPRepository implements IRSVPRepository {
     findAll(): IRSVP[] {
         return this.rsvps;
     }
+}
+
+// factory function so composition can create repo
+export function CreateRSVPRepository(): IRSVPRepository {
+    return new RSVPRepository();
 }

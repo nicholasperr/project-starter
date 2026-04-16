@@ -10,7 +10,7 @@ export interface IEventRepository {
         capacity: number, 
         startDatetime: Date, 
         endDatetime: Date, 
-        organizerId: number): void;
+        organizerId: string): void;
     findById(id: number): IEvent | null;
     update(id: number, params: UpdateEventParams): IEvent;
     delete(id: number): void;
@@ -21,7 +21,7 @@ class EventRepository implements IEventRepository {
     private events: IEvent[] = [];
     private nextId: number = 1;
 
-    create( title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number | null = null , startDatetime: Date, endDatetime: Date, organizerId: number): void {
+    create( title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number | null = null , startDatetime: Date, endDatetime: Date, organizerId: string): void {
         const event = new Event(this.nextId++, title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId);
         this.events.push(event);
     }
@@ -44,6 +44,7 @@ class EventRepository implements IEventRepository {
     }
 }
 
-export const CreateEventRepository = () => {
+// factory function so composition can create repo
+export function CreateEventRepository(): IEventRepository {
     return new EventRepository();
 }
