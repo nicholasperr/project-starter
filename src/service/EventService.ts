@@ -14,7 +14,7 @@ export interface IEventService {
     createEvent(title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number, startDatetime: Date, endDatetime: Date, organizerId: number): ServiceResult<void>;
     getEventById(eventId: number): ServiceResult<IEvent>;
     getAllEvents(): ServiceResult<IEvent[]>;
-    updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number, startDatetime?: Date, endDatetime?: Date): ServiceResult<void>;
+    updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date): ServiceResult<void>;
     deleteEvent(eventId: number): ServiceResult<void>;
     createRSVP(eventId: number, userId: number, status: RSVPStatus): ServiceResult<void>;
     getRSVPsForEvent(eventId: number): ServiceResult<IRSVP[]>;
@@ -50,7 +50,7 @@ class EventService implements IEventService {
         }
     }
 
-    updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number, startDatetime?: Date, endDatetime?: Date) {
+    updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date) {
         const params: UpdateEventParams = { title, description, location, category, status, capacity, startDatetime, endDatetime };
         try {
             this.eventRepository.update(eventId, params);
