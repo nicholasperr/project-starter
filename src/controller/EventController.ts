@@ -4,7 +4,7 @@ import type { IEventService } from "../service/EventService";
 import type { IAppBrowserSession } from "../session/AppSession";
 
 export interface IEventController {
-    createEvent(res: Response, content: string): void;
+    createEvent(req: Request, res: Response): void;
     showEventCreateForm(res: Response): void;
     showEventEditForm(req: Request, res: Response): void;
     editEvent(req: Request, res: Response): void;
@@ -22,18 +22,32 @@ class EventController implements IEventController {
         private readonly logger: ILoggingService,
     ) {}
 
-    createEvent(res: Response, content: string) {
-        const { title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId } = JSON.parse(content);
-        const result = this.eventService.createEvent(
+    createEvent(req: Request, res: Response) {
+        const {
             title,
             description,
             location,
             category,
             status,
             capacity,
+            startDatetime,
+            endDatetime,
+            organizerId,
+        } = req.body;
+
+        const parsedCapacity = capacity !== undefined && capacity !== "" ? Number(capacity) : null;
+        const parsedOrganizerId = organizerId;
+
+        const result = this.eventService.createEvent(
+            title,
+            description,
+            location,
+            category,
+            status,
+            parsedCapacity,
             new Date(startDatetime),
             new Date(endDatetime),
-            organizerId,
+            parsedOrganizerId,
         );
 
         if (!result.ok) {
@@ -44,7 +58,6 @@ class EventController implements IEventController {
             return;
         }
 
-        res.status(201).json({ ok: true, value: "Event created" });
         res.redirect("/events");
     }
 
@@ -121,7 +134,7 @@ class EventController implements IEventController {
             return;
         }
 
-        res.redirect(`/events/${eventId}`);
+        res.redirect("/events");
     }
     async toggleRSVPFromForm(
         res: Response,
