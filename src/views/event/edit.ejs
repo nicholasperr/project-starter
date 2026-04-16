@@ -1,0 +1,51 @@
+<section class="max-w-3xl p-6 border border-slate-200 rounded-2xl bg-white shadow-lg">
+  <h1 class="text-2xl font-bold mb-4"><%= pageTitle %></h1>
+  <form action="/events/<%= event.id %>" method="post" class="space-y-4">
+    <label class="block">
+      <span class="text-slate-700">Title</span>
+      <input type="text" name="title" value="<%= event.title %>" class="mt-1 block w-full border rounded p-2" required />
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">Description</span>
+      <textarea name="description" class="mt-1 block w-full border rounded p-2" rows="4" required><%= event.description %></textarea>
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">Location</span>
+      <input type="text" name="location" value="<%= event.location %>" class="mt-1 block w-full border rounded p-2" required />
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">Category</span>
+      <input type="text" name="category" value="<%= event.categrory %>" class="mt-1 block w-full border rounded p-2" required />
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">Status</span>
+      <select name="status" class="mt-1 block w-full border rounded p-2">
+        <option value="draft" <%= event.status === 'draft' ? 'selected' : '' %>>draft</option>
+        <option value="published" <%= event.status === 'published' ? 'selected' : '' %>>published</option>
+        <option value="cancelled" <%= event.status === 'cancelled' ? 'selected' : '' %>>cancelled</option>
+        <option value="past" <%= event.status === 'past' ? 'selected' : '' %>>past</option>
+      </select>
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">Capacity</span>
+      <input type="number" name="capacity" value="<%= event.capacity ?? '' %>" class="mt-1 block w-full border rounded p-2" />
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">Start</span>
+      <input type="datetime-local" name="startDatetime" value="<%= event.startDatetime.toISOString().slice(0, 16) %>" class="mt-1 block w-full border rounded p-2" required />
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">End</span>
+      <input type="datetime-local" name="endDatetime" value="<%= event.endDatetime.toISOString().slice(0, 16) %>" class="mt-1 block w-full border rounded p-2" required />
+    </label>
+
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save Event</button>
+  </form>
+</section>
