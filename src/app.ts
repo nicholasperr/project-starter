@@ -36,7 +36,6 @@ function sessionStore(req: Request): AppSessionStore {
 class ExpressApp implements IApp {
   private readonly app: express.Express;
 
-  // now includes eventController so routes can call RSVP logic
   constructor(
     private readonly authController: IAuthController,
     private readonly eventController: IEventController,
@@ -51,7 +50,6 @@ class ExpressApp implements IApp {
   }
 
   private registerMiddleware(): void {
-    // Serve static files from src/static (create this directory to add your own assets)
     this.app.use(express.static(path.join(process.cwd(), "src/static")));
     this.app.use(
       session({
@@ -331,6 +329,32 @@ class ExpressApp implements IApp {
         this.eventController.cancelEventFromForm(req, res, browserSession);
       }),
     );
+    this.app.post(
+      "/events/:id/rsvp",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        const eventId = Number(req.params.id);
+        const currentUser = getAuthenticatedUser(sessionStore(req));
+
+        if (Number.isNaN(eventId) || !currentUser) {
+          res.status(400).render("partials/error", {
+            message: "Invalid RSVP request.",
+            layout: false,
+          });
+          return;
+        }
+
+        await this.eventController.toggleRSVPFromForm(
+          res,
+          eventId,
+          currentUser.userId,
+          touchAppSession(sessionStore(req)),
+        );
+      }),
+    );
 
 
     this.app.post(
@@ -385,7 +409,6 @@ class ExpressApp implements IApp {
   }
 }
 
-// updated to pass eventController into app
 export function CreateApp(
   authController: IAuthController,
   eventController: IEventController,

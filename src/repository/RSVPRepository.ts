@@ -39,7 +39,6 @@ class RSVPRepository implements IRSVPRepository {
     }
 }
 
-// factory function so composition can create repo
 export function CreateRSVPRepository(): IRSVPRepository {
     return new RSVPRepository();
 }
