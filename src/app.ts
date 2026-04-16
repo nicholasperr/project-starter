@@ -17,6 +17,9 @@ import {
   touchAppSession,
 } from "./session/AppSession";
 import { ILoggingService } from "./service/LoggingService";
+import { IEventFilterController } from "./controller/EventFilterController";
+import { IEventSearchController } from "./controller/EventSearchController";
+import { IEventController } from "./controller/EventController";
 
 type AsyncRequestHandler = RequestHandler;
 
@@ -35,7 +38,10 @@ class ExpressApp implements IApp {
 
   constructor(
     private readonly authController: IAuthController,
+    private readonly eventController: IEventController,
     private readonly logger: ILoggingService,
+    private readonly eventFilterController: IEventFilterController,
+    private readonly eventSearchController: IEventSearchController,
   ) {
     this.app = express();
     this.registerMiddleware();
@@ -44,7 +50,6 @@ class ExpressApp implements IApp {
   }
 
   private registerMiddleware(): void {
-    // Serve static files from src/static (create this directory to add your own assets)
     this.app.use(express.static(path.join(process.cwd(), "src/static")));
     this.app.use(
       session({
@@ -253,6 +258,140 @@ class ExpressApp implements IApp {
       }),
     );
 
+    this.app.get(
+      "/events",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`GET /events`);
+
+        this.eventFilterController.getFilteredEvents(req, res);
+      })
+    );
+    this.app.get(
+      "/new",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`GET /new`);
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showEventCreateForm(res, browserSession);
+      }),
+    );
+    this.app.get(
+      "/events/search",
+      
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        this.eventSearchController.searchEvents(req, res);
+      })
+    );
+      this.app.get(
+      "/events/:id",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`GET /events/${req.params.id}`);
+
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showEventDetail(req, res, browserSession);
+      }),
+    );
+
+    this.app.post(
+      "/events/:id/publish",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`POST /events/${req.params.id}/publish`);
+
+        const browserSession = touchAppSession(sessionStore(req));
+        this.eventController.publishEventFromForm(req, res, browserSession);
+      }),
+    );
+
+    this.app.post(
+      "/events/:id/cancel",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`POST /events/${req.params.id}/cancel`);
+
+        const browserSession = touchAppSession(sessionStore(req));
+        this.eventController.cancelEventFromForm(req, res, browserSession);
+      }),
+    );
+    this.app.post(
+      "/events/:id/rsvp",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        const eventId = Number(req.params.id);
+        const currentUser = getAuthenticatedUser(sessionStore(req));
+
+        if (Number.isNaN(eventId) || !currentUser) {
+          res.status(400).render("partials/error", {
+            message: "Invalid RSVP request.",
+            layout: false,
+          });
+          return;
+        }
+
+        await this.eventController.toggleRSVPFromForm(
+          res,
+          eventId,
+          currentUser.userId,
+          touchAppSession(sessionStore(req)),
+        );
+      }),
+    );
+
+
+    this.app.post(
+      "/events",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`POST /events`);
+
+        this.eventController.createEvent(req, res);
+      }),
+    );
+
+    this.app.get(
+      "/events/:id/edit",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`GET /events/${req.params.id}/edit`);
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showEventEditForm(req, res, browserSession);
+      }),
+    );
+
+    this.app.post(
+      "/events/:id",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        this.eventController.editEvent(req, res);
+      }),
+    );
+
     // ── Error handler ────────────────────────────────────────────────
 
     this.app.use((err: unknown, _req: Request, res: Response, _next: (value?: unknown) => void) => {
@@ -272,7 +411,10 @@ class ExpressApp implements IApp {
 
 export function CreateApp(
   authController: IAuthController,
+  eventController: IEventController,
   logger: ILoggingService,
+  eventFilterController: IEventFilterController,
+  eventSearchController: IEventSearchController,
 ): IApp {
-  return new ExpressApp(authController, logger);
+  return new ExpressApp(authController, eventController, logger, eventFilterController, eventSearchController);
 }

@@ -1,0 +1,77 @@
+<section class="max-w-3xl p-6 border border-slate-200 rounded-2xl bg-white shadow-lg">
+  <h1 class="text-2xl font-bold mb-4"><%= pageTitle %></h1>
+  <form action="/events/<%= event.id %>" method="post" class="space-y-4">
+    <label class="block">
+      <span class="text-slate-700">Title</span>
+      <input type="text" name="title" value="<%= event.title %>" class="mt-1 block w-full border rounded p-2" required />
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">Description</span>
+      <textarea name="description" class="mt-1 block w-full border rounded p-2" rows="4" required><%= event.description %></textarea>
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">Location</span>
+      <input type="text" name="location" value="<%= event.location %>" class="mt-1 block w-full border rounded p-2" required />
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">Category</span>
+      <select name="category" class="mt-1 block w-full border rounded p-2" required>
+        <option value="music" <%= event.category === 'music' ? 'selected' : '' %>>music</option>
+        <option value="sports" <%= event.category === 'sports' ? 'selected' : '' %>>sports</option>
+        <option value="technology" <%= event.category === 'technology' ? 'selected' : '' %>>technology</option>
+        <option value="art" <%= event.category === 'art' ? 'selected' : '' %>>art</option>
+        <option value="education" <%= event.category === 'education' ? 'selected' : '' %>>education</option>
+        <option value="health" <%= event.category === 'health' ? 'selected' : '' %>>health</option>
+        <option value="business" <%= event.category === 'business' ? 'selected' : '' %>>business</option>
+        <option value="food" <%= event.category === 'food' ? 'selected' : '' %>>food</option>
+        <option value="other" <%= event.category === 'other' ? 'selected' : '' %>>other</option>
+      </select>
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">Status</span>
+      <select name="status" class="mt-1 block w-full border rounded p-2">
+        <option value="draft" <%= event.status === 'draft' ? 'selected' : '' %>>draft</option>
+        <option value="published" <%= event.status === 'published' ? 'selected' : '' %>>published</option>
+        <option value="cancelled" <%= event.status === 'cancelled' ? 'selected' : '' %>>cancelled</option>
+        <option value="past" <%= event.status === 'past' ? 'selected' : '' %>>past</option>
+      </select>
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">Capacity</span>
+      <input type="number" name="capacity" value="<%= event.capacity ?? '' %>" class="mt-1 block w-full border rounded p-2" />
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">Start</span>
+      <input type="datetime-local" name="startDatetime" value="<%= (() => {
+        const d = new Date(event.startDatetime);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      })() %>" class="mt-1 block w-full border rounded p-2" required />
+    </label>
+
+    <label class="block">
+      <span class="text-slate-700">End</span>
+      <input type="datetime-local" name="endDatetime" value="<%= (() => {
+        const d = new Date(event.endDatetime);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      })() %>" class="mt-1 block w-full border rounded p-2" required />
+    </label>
+
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save Event</button>
+  </form>
+</section>
