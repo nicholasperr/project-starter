@@ -15,6 +15,9 @@ export interface IEventService {
     getRSVPsForEvent(eventId: number): Result<IRSVP[],string>;
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): Result<void,string>;
     deleteRSVP(eventId: number): Result<void,string>;
+    getVisibleEventById(eventId: number, userId: string, role: string): Result<IEvent, string>;
+    publishEvent(eventId: number, userId: string, role: string): Result<IEvent, string>;
+    cancelEvent(eventId: number, userId: string, role: string): Result<IEvent, string>;
 }
 
 class EventService implements IEventService {
@@ -97,6 +100,77 @@ class EventService implements IEventService {
         } catch (error) {
             return Err(error instanceof Error ? error.message : 'Unable to delete RSVP');
         }
+    }
+    getVisibleEventById(eventId: number, userId: string, role: string): Result<IEvent, string> {
+        const event = this.eventRepository.findById(eventId);
+
+        if (!event) {
+            return Err("Event not found");
+        }
+
+        if (event.status === "published" || event.status === "cancelled" || event.status === "past") {
+            return Ok(event);
+        }
+
+        const canViewDraft = role === "admin" || event.organizerId === userId;
+
+        if (!canViewDraft) {
+            return Err("Event not found");
+        }
+
+        return Ok(event);
+    }
+
+
+    
+    publishEvent(eventId: number, userId: string, role: string): Result<IEvent, string> {
+        const event = this.eventRepository.findById(eventId);
+
+        if (!event) {
+            return Err("Event not found");
+        }
+
+        const isOwner = event.organizerId === userId;
+        const isAdmin = role === "admin";
+
+        if (!isOwner && !isAdmin) {
+            return Err("You are not allowed to publish this event");
+        }
+
+        if (event.status !== "draft") {
+            return Err("Only draft events can be published");
+        }
+
+        const updated = this.eventRepository.update(eventId, {
+            status: "published",
+        });
+
+        return Ok(updated);
+    }
+
+    cancelEvent(eventId: number, userId: string, role: string): Result<IEvent, string> {
+        const event = this.eventRepository.findById(eventId);
+
+        if (!event) {
+            return Err("Event not found");
+        }
+
+        const isOwner = event.organizerId === userId;
+        const isAdmin = role === "admin";
+
+        if (!isOwner && !isAdmin) {
+            return Err("You are not allowed to cancel this event");
+        }
+
+        if (event.status !== "published") {
+            return Err("Only published events can be cancelled");
+        }
+
+        const updated = this.eventRepository.update(eventId, {
+            status: "cancelled",
+        });
+
+        return Ok(updated);
     }
 
     // handles RSVP behavior (new RSVP, cancel existing RSVP, and reactivate cancelled RSVP)

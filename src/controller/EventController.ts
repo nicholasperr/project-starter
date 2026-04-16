@@ -14,6 +14,10 @@ export interface IEventController {
         userId: string,
         session: IAppBrowserSession,
     ): Promise<void>;
+    showEventDetail(req: Request, res: Response, session: IAppBrowserSession): void;
+    publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void;
+    cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void;
+    
 }
 
 class EventController implements IEventController {
@@ -21,7 +25,116 @@ class EventController implements IEventController {
         private readonly eventService: IEventService,
         private readonly logger: ILoggingService,
     ) {}
+        showEventDetail(req: Request, res: Response, session: IAppBrowserSession): void {
+        const eventId = Number(req.params.id);
 
+        if (Number.isNaN(eventId)) {
+            res.status(400).render("partials/error", {
+                message: "Invalid event id",
+                layout: false,
+            });
+            return;
+        }
+
+        const user = session.authenticatedUser;
+
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        const result = this.eventService.getVisibleEventById(
+            eventId,
+            user.userId,
+            user.role,
+        );
+
+        if (!result.ok) {
+            res.status(404).render("partials/error", {
+                message: result.value,
+                layout: false,
+            });
+            return;
+        }
+
+        res.render("event/show", {
+            session,
+            pageError: null,
+            event: result.value,
+        });
+    }
+
+    publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void {
+        const eventId = Number(req.params.id);
+
+        if (Number.isNaN(eventId)) {
+            res.status(400).render("partials/error", {
+                message: "Invalid event id",
+                layout: false,
+            });
+            return;
+        }
+
+        const user = session.authenticatedUser;
+
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        const result = this.eventService.publishEvent(eventId, user.userId, user.role);
+
+        if (!result.ok) {
+            res.status(400).render("partials/error", {
+                message: result.value,
+                layout: false,
+            });
+            return;
+        }
+
+        res.redirect(`/events/${eventId}`);
+    }
+
+    cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void {
+        const eventId = Number(req.params.id);
+
+        if (Number.isNaN(eventId)) {
+            res.status(400).render("partials/error", {
+                message: "Invalid event id",
+                layout: false,
+            });
+            return;
+        }
+
+        const user = session.authenticatedUser;
+
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        const result = this.eventService.cancelEvent(eventId, user.userId, user.role);
+
+        if (!result.ok) {
+            res.status(400).render("partials/error", {
+                message: result.value,
+                layout: false,
+            });
+            return;
+        }
+
+        res.redirect(`/events/${eventId}`);
+    }
+    
     createEvent(res: Response, content: string) {
         const { title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId } = JSON.parse(content);
         const result = this.eventService.createEvent(
@@ -47,6 +160,8 @@ class EventController implements IEventController {
         res.status(201).json({ ok: true, value: "Event created" });
         res.redirect("/events");
     }
+
+
 
     showEventCreateForm(res: Response) {
         res.render("event/create", {
