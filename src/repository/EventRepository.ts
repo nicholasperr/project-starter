@@ -17,7 +17,7 @@ export interface IEventRepository {
     findAll(): IEvent[];
 }
 
-export class EventRepository implements IEventRepository {
+class EventRepository implements IEventRepository {
     private events: IEvent[] = [];
     private nextId: number = 1;
 
