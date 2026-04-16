@@ -10,7 +10,7 @@ export interface IEventService {
     getAllEvents(): Result<IEvent[],string>;
     updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date): Result<void,string>;
     deleteEvent(eventId: number): Result<void,string>;
-    createRSVP(eventId: number, userId: string, status: RSVPStatus): Result<void,string>;
+    createRSVP(eventId: number, userId: string, status?: RSVPStatus): Result<void,string>;
     toggleRSVP(eventId: number, userId: string): Result<string, string>;    
     getRSVPsForEvent(eventId: number): Result<IRSVP[],string>;
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): Result<void,string>;
@@ -67,15 +67,18 @@ class EventService implements IEventService {
         }
     }
 
-    createRSVP(eventId: number, userId: string, status: RSVPStatus) {
+    createRSVP(eventId: number, userId: string, status?: RSVPStatus) {
         try {
-            this.rsvpRepository.create(eventId, userId, status);
+            const finalStatus: RSVPStatus = status ?? "pending";
+
+            this.rsvpRepository.create(eventId, userId, finalStatus);
+
             return Ok(undefined);
         } catch (error) {
-            return Err(error instanceof Error ? error.message : 'Unable to create RSVP');
+            return Err(error instanceof Error ? error.message : "Unable to create RSVP");
         }
     }
-
+    
     getRSVPsForEvent(eventId: number) {
         try {
             return Ok(this.rsvpRepository.findByEventId(eventId));
