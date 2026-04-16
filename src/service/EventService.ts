@@ -10,7 +10,7 @@ export interface IEventService {
     getAllEvents(): Result<IEvent[],string>;
     updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date): Result<void,string>;
     deleteEvent(eventId: number): Result<void,string>;
-    createRSVP(eventId: number, userId: number, status: RSVPStatus): Result<void,string>;
+    createRSVP(eventId: number, userId: string, status: RSVPStatus): Result<void,string>;
     toggleRSVP(eventId: number, userId: string): Result<string, string>;    
     getRSVPsForEvent(eventId: number): Result<IRSVP[],string>;
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): Result<void,string>;
@@ -32,9 +32,9 @@ class EventService implements IEventService {
     getEventById(eventId: number) {
         const event = this.eventRepository.findById(eventId);
         if (!event) {
-            return ErrResult<IEvent>('Event not found');
+            return Err('Event not found');
         }
-        return OkResult(event);
+        return Ok(event);
     }
 
     getAllEvents() {
@@ -64,7 +64,7 @@ class EventService implements IEventService {
         }
     }
 
-    createRSVP(eventId: number, userId: number, status: RSVPStatus) {
+    createRSVP(eventId: number, userId: string, status: RSVPStatus) {
         try {
             this.rsvpRepository.create(eventId, userId, status);
             return Ok(undefined);
