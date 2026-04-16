@@ -43,3 +43,8 @@ class EventRepository implements IEventRepository {
         return this.events;
     }
 }
+
+// factory function so composition can create repo
+export function CreateEventRepository(): IEventRepository {
+    return new EventRepository();
+}
