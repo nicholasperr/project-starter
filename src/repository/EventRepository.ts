@@ -18,33 +18,8 @@ export interface IEventRepository {
 }
 
 class EventRepository implements IEventRepository {
-    private events: IEvent[] = [
-    new Event(
-        1,
-        "Campus Concert",
-        "A live music event for students.",
-        "Student Union",
-        "music",
-        "published",
-        50,
-        new Date("2026-04-20T18:00:00"),
-        new Date("2026-04-20T21:00:00"),
-        "user-staff"
-    ),
-    new Event(
-        2,
-        "Draft Planning Meeting",
-        "Internal planning event not yet published.",
-        "Library Room 101",
-        "academic",
-        "draft",
-        20,
-        new Date("2026-04-25T12:00:00"),
-        new Date("2026-04-25T13:30:00"),
-        "user-staff"
-    )
-    ];
-    private nextId: number = 3;
+    private events: IEvent[] = [];
+    private nextId: number = 1;
 
     create( title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number | null = null , startDatetime: Date, endDatetime: Date, organizerId: string): void {
         const event = new Event(this.nextId++, title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId);

@@ -7,61 +7,37 @@ import { CreateApp } from "./app";
 import type { IApp } from "./contracts";
 
 import { CreateEventController } from "./controller/EventController";
-import { CreateEventFilterController } from "./controller/EventFilterController";
-import { CreateEventSearchController } from "./controller/EventSearchController";
-
 import { CreateEventRepository } from "./repository/EventRepository";
 import { CreateRSVPRepository } from "./repository/RSVPRepository";
-
 import { CreateLoggingService } from "./service/LoggingService";
 import type { ILoggingService } from "./service/LoggingService";
-
-import { CreateEventService } from "./service/EventService";
 import { CreateEventFilterService } from "./service/EventFilterService";
+import { CreateEventFilterController } from "./controller/EventFilterController";
 import { CreateEventSearchService } from "./service/EventSearchService";
+import { CreateEventSearchController } from "./controller/EventSearchController";
+import { CreateEventService } from "./service/EventService";
 
-export function createComposedApp(logger?: ILoggingService): IApp {
-  const resolvedLogger = logger ?? CreateLoggingService();
+export function createComposedApp(): IApp {
 
-  // Auth wiring
+    const logger = CreateLoggingService();
+
+    const userRepo = CreateInMemoryUserRepository();
+    const passwordHasher = CreatePasswordHasher();
+    const authService = CreateAuthService(userRepo, passwordHasher);
+    const adminService = CreateAdminUserService(userRepo, passwordHasher);
+    const authController = CreateAuthController(authService, adminService, logger);
+
   const authUsers = CreateInMemoryUserRepository();
   const passwordHasher = CreatePasswordHasher();
   const authService = CreateAuthService(authUsers, passwordHasher);
   const adminUserService = CreateAdminUserService(authUsers, passwordHasher);
-  const authController = CreateAuthController(
-    authService,
-    adminUserService,
-    resolvedLogger,
-  );
-
-  // Shared repositories
+  const authController = CreateAuthController(authService, adminUserService, resolvedLogger);
   const eventRepository = CreateEventRepository();
-  const rsvpRepository = CreateRSVPRepository();
-
-  // Event detail / lifecycle
-  const eventService = CreateEventService(eventRepository, rsvpRepository);
-  const eventController = CreateEventController(
-    eventService,
-    resolvedLogger,
-  );
-
-  // Event filter
   const eventFilterService = CreateEventFilterService(eventRepository);
-  const eventFilterController = CreateEventFilterController(
-    eventFilterService,
-  );
+  const eventFilterController = CreateEventFilterController(eventFilterService);
+  const eventSearchService = CreateEventSearchService(eventRepository)
+  const eventSearchController = CreateEventSearchController(eventSearchService);
+  const eventController = CreateEventController(eventService, logger);
 
-  // Event search
-  const eventSearchService = CreateEventSearchService(eventRepository);
-  const eventSearchController = CreateEventSearchController(
-    eventSearchService,
-  );
-
-  return CreateApp(
-    authController,
-    eventController,
-    resolvedLogger,
-    eventFilterController,
-    eventSearchController,
-  );
+  return CreateApp(authController, eventController, resolvedLogger, eventFilterController, eventSearchController);
 }
