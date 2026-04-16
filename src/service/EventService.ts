@@ -10,7 +10,7 @@ export interface IEventService {
     getAllEvents(): Result<IEvent[],string>;
     updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date): Result<void,string>;
     deleteEvent(eventId: number): Result<void,string>;
-    createRSVP(eventId: number, userId: string, status: RSVPStatus): Result<void,string>;
+    createRSVP(eventId: number, userId: string, status?: RSVPStatus): Result<void,string>;
     toggleRSVP(eventId: number, userId: string): Result<string, string>;    
     getRSVPsForEvent(eventId: number): Result<IRSVP[],string>;
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): Result<void,string>;
@@ -64,12 +64,15 @@ class EventService implements IEventService {
         }
     }
 
-    createRSVP(eventId: number, userId: string, status: RSVPStatus) {
+    createRSVP(eventId: number, userId: string, status?: RSVPStatus) {
         try {
-            this.rsvpRepository.create(eventId, userId, status);
+            const finalStatus: RSVPStatus = status ?? "pending";
+
+            this.rsvpRepository.create(eventId, userId, finalStatus);
+
             return Ok(undefined);
         } catch (error) {
-            return Err(error instanceof Error ? error.message : 'Unable to create RSVP');
+            return Err(error instanceof Error ? error.message : "Unable to create RSVP");
         }
     }
 
@@ -99,29 +102,22 @@ class EventService implements IEventService {
         }
     }
 
-    // handles RSVP behavior (new RSVP, cancel existing RSVP, and reactivate cancelled RSVP)
     toggleRSVP(eventId: number, userId: string): Result<string, string> {
 
-        // make sure event exists first
         const event = this.eventRepository.findById(eventId);
 
         if (!event) {
             return Err("Event not found");
         }
 
-        // get all RSVPs for this event
         const allRSVPs = this.rsvpRepository.findByEventId(eventId);
 
-        // check if this user already has one
         const existing = allRSVPs.find(r => r.userId === userId);
 
-        // #1: no RSVP yet → create one
         if (!existing) {
 
-            // default is going
             let status: RSVPStatus = "going";
 
-            // if event has a set capacity, check if it's full
             if (event.capacity !== null) {
 
                 const goingCount = allRSVPs.filter(r => r.status === "going").length;
@@ -136,7 +132,6 @@ class EventService implements IEventService {
             return Ok(status);
         }
 
-        // #2: RSVP already active, cancel
         if (existing.status === "going" || existing.status === "waitlisted") {
 
             this.rsvpRepository.update(existing.id, "cancelled");
@@ -144,10 +139,8 @@ class EventService implements IEventService {
             return Ok("cancelled");
         }
 
-        // #3: RSVP cancelled, reactivate
         if (existing.status === "cancelled") {
 
-            // default is going again
             let status: RSVPStatus = "going";
 
             if (event.capacity !== null) {
