@@ -244,8 +244,8 @@ class EventController implements IEventController {
             category,
             status,
             parsedCapacity,
-            startDatetime ? new Date(startDatetime) : undefined,
-            endDatetime ? new Date(endDatetime) : undefined,
+            new Date(startDatetime),
+            new Date(endDatetime),
         );
 
         if (!result.ok) {
