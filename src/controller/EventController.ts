@@ -5,8 +5,8 @@ import type { IAppBrowserSession } from "../session/AppSession";
 
 export interface IEventController {
     createEvent(req: Request, res: Response): void;
-    showEventCreateForm(res: Response): void;
-    showEventEditForm(req: Request, res: Response): void;
+    showEventCreateForm(res: Response, session: IAppBrowserSession): void;
+    showEventEditForm(req: Request, res: Response, session: IAppBrowserSession): void;
     editEvent(req: Request, res: Response): void;
     toggleRSVPFromForm(
         res: Response,
@@ -61,13 +61,14 @@ class EventController implements IEventController {
         res.redirect("/events");
     }
 
-    showEventCreateForm(res: Response) {
+    showEventCreateForm(res: Response, session: IAppBrowserSession) {
         res.render("event/create", {
             pageTitle: "Create Event",
+            session: session,
         });
     }
 
-    showEventEditForm(req: Request, res: Response) {
+    showEventEditForm(req: Request, res: Response, session: IAppBrowserSession) {
         const eventId = Number(req.params.id);
         if (Number.isNaN(eventId)) {
             res.status(400).render("partials/error", {
@@ -85,10 +86,16 @@ class EventController implements IEventController {
             });
             return;
         }
+        if (session.authenticatedUser?.userId !== result.value.organizerId) {
+            res.status(403).render("partials/error", {
+                message: "You do not have permission to edit this event",});
+            return;
+        }
 
         res.render("event/edit", {
             pageTitle: "Edit Event",
             event: result.value,
+            session: session,
         });
     }
 

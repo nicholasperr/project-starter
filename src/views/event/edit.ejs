@@ -18,7 +18,17 @@
 
     <label class="block">
       <span class="text-slate-700">Category</span>
-      <input type="text" name="category" value="<%= event.category %>" class="mt-1 block w-full border rounded p-2" required />
+      <select name="category" class="mt-1 block w-full border rounded p-2" required>
+        <option value="music" <%= event.categrory === 'music' ? 'selected' : '' %>>music</option>
+        <option value="sports" <%= event.categrory === 'sports' ? 'selected' : '' %>>sports</option>
+        <option value="technology" <%= event.categrory === 'technology' ? 'selected' : '' %>>technology</option>
+        <option value="art" <%= event.categrory === 'art' ? 'selected' : '' %>>art</option>
+        <option value="education" <%= event.categrory === 'education' ? 'selected' : '' %>>education</option>
+        <option value="health" <%= event.categrory === 'health' ? 'selected' : '' %>>health</option>
+        <option value="business" <%= event.categrory === 'business' ? 'selected' : '' %>>business</option>
+        <option value="food" <%= event.categrory === 'food' ? 'selected' : '' %>>food</option>
+        <option value="other" <%= event.categrory === 'other' ? 'selected' : '' %>>other</option>
+      </select>
     </label>
 
     <label class="block">

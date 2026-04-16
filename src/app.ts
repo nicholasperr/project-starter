@@ -288,8 +288,8 @@ class ExpressApp implements IApp {
         if (!this.requireAuthenticated(req, res)) {
           return;
         }
-
-        this.eventController.showEventCreateForm(res);
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showEventCreateForm(res, browserSession);
       }),
     );
 
@@ -310,8 +310,8 @@ class ExpressApp implements IApp {
         if (!this.requireAuthenticated(req, res)) {
           return;
         }
-
-        this.eventController.showEventEditForm(req, res);
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showEventEditForm(req, res, browserSession);
       }),
     );
 
