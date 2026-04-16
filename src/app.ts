@@ -17,8 +17,6 @@ import {
   touchAppSession,
 } from "./session/AppSession";
 import { ILoggingService } from "./service/LoggingService";
-import { IEventFilterController } from "./controller/EventFilterController";
-import { IEventSearchController } from "./controller/EventSearchController";
 import { IEventController } from "./controller/EventController";
 
 type AsyncRequestHandler = RequestHandler;
@@ -41,8 +39,6 @@ class ExpressApp implements IApp {
     private readonly authController: IAuthController,
     private readonly eventController: IEventController,
     private readonly logger: ILoggingService,
-    private readonly eventFilterController: IEventFilterController,
-    private readonly eventSearchController: IEventSearchController,
   ) {
     this.app = express();
     this.registerMiddleware();
@@ -267,7 +263,7 @@ class ExpressApp implements IApp {
           return;
         }
 
-        this.eventFilterController.getFilteredEvents(req, res);
+        this.eventController.getFilteredEvents(req, res);
       })
     );
 
@@ -278,7 +274,7 @@ class ExpressApp implements IApp {
           return;
         }
 
-        this.eventSearchController.searchEvents(req, res);
+        this.eventController.searchEvents(req, res);
       })
     );
 
@@ -304,8 +300,6 @@ export function CreateApp(
   authController: IAuthController,
   eventController: IEventController,
   logger: ILoggingService,
-  eventFilterController: IEventFilterController,
-  eventSearchController: IEventSearchController,
 ): IApp {
-  return new ExpressApp(authController, eventController, logger, eventFilterController, eventSearchController);
+  return new ExpressApp(authController, eventController, logger);
 }
