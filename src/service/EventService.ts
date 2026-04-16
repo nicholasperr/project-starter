@@ -15,6 +15,9 @@ export interface IEventService {
     getRSVPsForEvent(eventId: number): Result<IRSVP[],string>;
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): Result<void,string>;
     deleteRSVP(eventId: number): Result<void,string>;
+    getVisibleEventById(eventId: number, userId: string, role: string): Result<IEvent, string>;
+    publishEvent(eventId: number, userId: string, role: string): Result<IEvent, string>;
+    cancelEvent(eventId: number, userId: string, role: string): Result<IEvent, string>;
 }
 
 class EventService implements IEventService {
@@ -118,6 +121,8 @@ class EventService implements IEventService {
         return Ok(event);
     }
 
+
+    
     publishEvent(eventId: number, userId: string, role: string): Result<IEvent, string> {
         const event = this.eventRepository.findById(eventId);
 
