@@ -17,7 +17,7 @@ class EventFilterService implements IEventFilterService {
     getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): Result<IEvent[], EventError> {
         let events = this.eventRepository.findAll().filter(e => e.status === "published");
         
-        if (category) { events = events.filter(e => e.categrory === category) }
+        if (category) { events = events.filter(e => e.category === category) }
         const today = new Date();
         
         if (timeframe === "this_week") {

@@ -273,6 +273,7 @@ class ExpressApp implements IApp {
 
     this.app.get(
       "/events/search",
+      
       asyncHandler(async (req, res) => {
         if (!this.requireAuthenticated(req, res)) {
           return;
@@ -281,7 +282,41 @@ class ExpressApp implements IApp {
         this.eventSearchController.searchEvents(req, res);
       })
     );
+      this.app.get(
+      "/events/:id",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
 
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showEventDetail(req, res, browserSession);
+      }),
+    );
+
+    this.app.post(
+      "/events/:id/publish",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        const browserSession = touchAppSession(sessionStore(req));
+        this.eventController.publishEventFromForm(req, res, browserSession);
+      }),
+    );
+
+    this.app.post(
+      "/events/:id/cancel",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        const browserSession = touchAppSession(sessionStore(req));
+        this.eventController.cancelEventFromForm(req, res, browserSession);
+      }),
+    );
     this.app.get(
       "/events/new",
       asyncHandler(async (req, res) => {
