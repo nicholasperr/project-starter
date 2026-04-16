@@ -1,10 +1,12 @@
 import { IEvent, Category } from "../model/event"
 import { IEventRepository } from "../repository/EventRepository"
+import { Ok, Result } from "../lib/result"
+import { EventError } from "./errors"
 
 export type EventTimeFrame = "all_upcoming" | "this_week" | "this_weekend"
 
 export interface IEventFilterService {
-    getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): IEvent[]
+    getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): Result<IEvent[], EventError>
 }
 
 class EventFilterService implements IEventFilterService {
@@ -12,7 +14,7 @@ class EventFilterService implements IEventFilterService {
     constructor(private readonly eventRepository: IEventRepository) {
     }
     
-    getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): IEvent[] {
+    getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): Result<IEvent[], EventError> {
         let events = this.eventRepository.findAll().filter(e => e.status === "published");
         
         if (category) { events = events.filter(e => e.categrory === category) }
@@ -36,7 +38,7 @@ class EventFilterService implements IEventFilterService {
             events = events.filter(e => e.startDatetime >= today)
         }
 
-        return events
+        return Ok(events)
     }
 }
 

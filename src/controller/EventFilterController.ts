@@ -15,8 +15,14 @@ class EventFilterController implements IEventFilterController {
         const category = req.query.category as Category | undefined;
         const timeframe = req.query.timeframe as EventTimeFrame | undefined;
 
-        let events = this.eventFilterService.getFilteredEvents(category, timeframe)
-        res.json(events);
+        const result = this.eventFilterService.getFilteredEvents(category, timeframe)
+        if (result.ok === false) {
+            res.status(400).json({ error: result.value.message });
+            return;
+        }
+        
+        res.json(result.value);
+        
     }
 }
 

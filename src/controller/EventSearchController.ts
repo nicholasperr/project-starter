@@ -13,8 +13,13 @@ class EventSearchController implements IEventSearchController {
         
         const query = (req.query.query as string ?? "")
 
-        let events = this.eventSearchService.searchEvents(query)
-        res.json(events);
+        const result = this.eventSearchService.searchEvents(query);
+        if (result.ok === false) {
+            res.status(400).json({ error: result.value.message});
+            return;
+        }
+
+        res.json(result.value);
     }
 }
 
