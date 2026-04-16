@@ -271,6 +271,7 @@ class ExpressApp implements IApp {
 
     this.app.get(
       "/events/search",
+      
       asyncHandler(async (req, res) => {
         if (!this.requireAuthenticated(req, res)) {
           return;
@@ -279,34 +280,41 @@ class ExpressApp implements IApp {
         this.eventSearchController.searchEvents(req, res);
       })
     );
-
-    this.app.post(
-      "/events/:id/rsvp",
+      this.app.get(
+      "/events/:id",
       asyncHandler(async (req, res) => {
         if (!this.requireAuthenticated(req, res)) {
           return;
         }
 
-        const eventId = Number(req.params.id);
-        const currentUser = getAuthenticatedUser(sessionStore(req));
-
-        if (Number.isNaN(eventId) || !currentUser) {
-          res.status(400).render("partials/error", {
-            message: "Invalid RSVP request.",
-            layout: false,
-          });
-          return;
-        }
-
-        await this.eventController.toggleRSVPFromForm(
-          res,
-          eventId,
-          currentUser.userId,
-          touchAppSession(sessionStore(req)),
-        );
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showEventDetail(req, res, browserSession);
       }),
     );
 
+    this.app.post(
+      "/events/:id/publish",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        const browserSession = touchAppSession(sessionStore(req));
+        this.eventController.publishEventFromForm(req, res, browserSession);
+      }),
+    );
+
+    this.app.post(
+      "/events/:id/cancel",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        const browserSession = touchAppSession(sessionStore(req));
+        this.eventController.cancelEventFromForm(req, res, browserSession);
+      }),
+    );
     // ── Error handler ────────────────────────────────────────────────
 
     this.app.use((err: unknown, _req: Request, res: Response, _next: (value?: unknown) => void) => {
