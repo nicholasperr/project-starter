@@ -73,3 +73,26 @@
     <li><a class="text-blue-700 hover:underline" href="/events/2">View draft event (Event 2)</a></li>
   </ul>
 </section>
+
+
+<section class="max-w-3xl mt-5 p-6 border border-slate-200 rounded-2xl bg-white shadow-lg">
+  <h2 class="text-xl font-semibold mb-3">Quick Links</h2>
+
+  <div class="flex gap-3 flex-wrap">
+    <a
+      href="/new"
+      class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white font-medium no-underline hover:bg-blue-700"
+    >
+      New Event
+    </a>
+
+    <% if (session.authenticatedUser && session.authenticatedUser.role === "user") { %>
+      <a
+        href="/my-rsvps"
+        class="inline-flex items-center px-4 py-2 rounded-lg bg-slate-700 text-white font-medium no-underline hover:bg-slate-800"
+      >
+        View RSVPs
+      </a>
+    <% } %>
+  </div>
+</section>
