@@ -18,7 +18,17 @@
 
     <label class="block">
       <span class="text-slate-700">Category</span>
-      <input type="text" name="category" class="mt-1 block w-full border rounded p-2" required />
+      <select name="category" class="mt-1 block w-full border rounded p-2" required>
+        <option value="music">music</option>
+        <option value="sports">sports</option>
+        <option value="technology">technology</option>
+        <option value="art">art</option>
+        <option value="education">education</option>
+        <option value="health">health</option>
+        <option value="business">business</option>
+        <option value="food">food</option>
+        <option value="other">other</option>
+      </select>
     </label>
 
     <label class="block">
@@ -46,10 +56,7 @@
       <input type="datetime-local" name="endDatetime" class="mt-1 block w-full border rounded p-2" required />
     </label>
 
-    <label class="block">
-      <span class="text-slate-700">Organizer ID</span>
-      <input type="number" name="organizerId" class="mt-1 block w-full border rounded p-2" required />
-    </label>
+    <input type="hidden" name="organizerId" value="<%= session.authenticatedUser.userId %>" />
 
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Create Event</button>
   </form>

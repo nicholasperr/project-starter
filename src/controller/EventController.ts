@@ -4,9 +4,9 @@ import type { IEventService } from "../service/EventService";
 import type { IAppBrowserSession } from "../session/AppSession";
 
 export interface IEventController {
-    createEvent(res: Response, content: string): void;
-    showEventCreateForm(res: Response): void;
-    showEventEditForm(req: Request, res: Response): void;
+    createEvent(req: Request, res: Response): void;
+    showEventCreateForm(res: Response, session: IAppBrowserSession): void;
+    showEventEditForm(req: Request, res: Response, session: IAppBrowserSession): void;
     editEvent(req: Request, res: Response): void;
     toggleRSVPFromForm(
         res: Response,
@@ -135,18 +135,32 @@ class EventController implements IEventController {
         res.redirect(`/events/${eventId}`);
     }
     
-    createEvent(res: Response, content: string) {
-        const { title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId } = JSON.parse(content);
-        const result = this.eventService.createEvent(
+    createEvent(req: Request, res: Response) {
+        const {
             title,
             description,
             location,
             category,
             status,
             capacity,
+            startDatetime,
+            endDatetime,
+            organizerId,
+        } = req.body;
+
+        const parsedCapacity = capacity !== undefined && capacity !== "" ? Number(capacity) : null;
+        const parsedOrganizerId = organizerId;
+
+        const result = this.eventService.createEvent(
+            title,
+            description,
+            location,
+            category,
+            status,
+            parsedCapacity,
             new Date(startDatetime),
             new Date(endDatetime),
-            organizerId,
+            parsedOrganizerId,
         );
 
         if (!result.ok) {
@@ -157,19 +171,17 @@ class EventController implements IEventController {
             return;
         }
 
-        res.status(201).json({ ok: true, value: "Event created" });
         res.redirect("/events");
     }
 
-
-
-    showEventCreateForm(res: Response) {
+    showEventCreateForm(res: Response, session: IAppBrowserSession) {
         res.render("event/create", {
             pageTitle: "Create Event",
+            session: session,
         });
     }
 
-    showEventEditForm(req: Request, res: Response) {
+    showEventEditForm(req: Request, res: Response, session: IAppBrowserSession) {
         const eventId = Number(req.params.id);
         if (Number.isNaN(eventId)) {
             res.status(400).render("partials/error", {
@@ -187,10 +199,18 @@ class EventController implements IEventController {
             });
             return;
         }
+        if (session.authenticatedUser?.userId !== result.value.organizerId) {
+            res.status(403).render("partials/error", {
+                message: "You do not have permission to edit this event",
+                layout: false,
+            });
+            return;
+        }
 
         res.render("event/edit", {
             pageTitle: "Edit Event",
             event: result.value,
+            session: session,
         });
     }
 
@@ -224,8 +244,8 @@ class EventController implements IEventController {
             category,
             status,
             parsedCapacity,
-            startDatetime ? new Date(startDatetime) : undefined,
-            endDatetime ? new Date(endDatetime) : undefined,
+            new Date(startDatetime),
+            new Date(endDatetime),
         );
 
         if (!result.ok) {
@@ -236,7 +256,7 @@ class EventController implements IEventController {
             return;
         }
 
-        res.redirect(`/events/${eventId}`);
+        res.redirect("/events");
     }
     async toggleRSVPFromForm(
         res: Response,

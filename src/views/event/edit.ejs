@@ -18,7 +18,17 @@
 
     <label class="block">
       <span class="text-slate-700">Category</span>
-      <input type="text" name="category" value="<%= event.categrory %>" class="mt-1 block w-full border rounded p-2" required />
+      <select name="category" class="mt-1 block w-full border rounded p-2" required>
+        <option value="music" <%= event.category === 'music' ? 'selected' : '' %>>music</option>
+        <option value="sports" <%= event.category === 'sports' ? 'selected' : '' %>>sports</option>
+        <option value="technology" <%= event.category === 'technology' ? 'selected' : '' %>>technology</option>
+        <option value="art" <%= event.category === 'art' ? 'selected' : '' %>>art</option>
+        <option value="education" <%= event.category === 'education' ? 'selected' : '' %>>education</option>
+        <option value="health" <%= event.category === 'health' ? 'selected' : '' %>>health</option>
+        <option value="business" <%= event.category === 'business' ? 'selected' : '' %>>business</option>
+        <option value="food" <%= event.category === 'food' ? 'selected' : '' %>>food</option>
+        <option value="other" <%= event.category === 'other' ? 'selected' : '' %>>other</option>
+      </select>
     </label>
 
     <label class="block">
@@ -38,12 +48,28 @@
 
     <label class="block">
       <span class="text-slate-700">Start</span>
-      <input type="datetime-local" name="startDatetime" value="<%= event.startDatetime.toISOString().slice(0, 16) %>" class="mt-1 block w-full border rounded p-2" required />
+      <input type="datetime-local" name="startDatetime" value="<%= (() => {
+        const d = new Date(event.startDatetime);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      })() %>" class="mt-1 block w-full border rounded p-2" required />
     </label>
 
     <label class="block">
       <span class="text-slate-700">End</span>
-      <input type="datetime-local" name="endDatetime" value="<%= event.endDatetime.toISOString().slice(0, 16) %>" class="mt-1 block w-full border rounded p-2" required />
+      <input type="datetime-local" name="endDatetime" value="<%= (() => {
+        const d = new Date(event.endDatetime);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      })() %>" class="mt-1 block w-full border rounded p-2" required />
     </label>
 
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save Event</button>
