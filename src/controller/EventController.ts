@@ -17,7 +17,7 @@ export interface IEventController {
     showEventDetail(req: Request, res: Response, session: IAppBrowserSession): void;
     publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void;
     cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void;
-    
+    showRSVPDashboard(res: Response, session: IAppBrowserSession): void;
 }
 
 class EventController implements IEventController {
@@ -267,6 +267,42 @@ class EventController implements IEventController {
         res.render("home", {
             session,
             pageError: null,
+        });
+    }
+
+    showRSVPDashboard(res: Response, session: IAppBrowserSession): void {
+        const user = session.authenticatedUser;
+
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        if (user.role !== "user") {
+            res.status(403).render("partials/error", {
+                message: "Dashboard only available to members",
+                layout: false,
+            });
+            return;
+        }
+
+        const result = this.eventService.getUserDashboard(user.userId);
+
+        if (!result.ok) {
+            res.status(400).render("partials/error", {
+                message: result.value,
+                layout: false,
+            });
+            return;
+        }
+
+        res.render("event/dashboard", {
+            session,
+            upcoming: result.value.upcoming,
+            past: result.value.past,
         });
     }
 }
