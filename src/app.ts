@@ -356,6 +356,19 @@ class ExpressApp implements IApp {
       }),
     );
 
+    this.app.get(
+      "/my-rsvps",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showRSVPDashboard(res, browserSession);
+      }),
+    );
+    
+
 
     this.app.post(
       "/events",
@@ -389,6 +402,34 @@ class ExpressApp implements IApp {
         }
 
         this.eventController.editEvent(req, res);
+      }),
+    );
+
+
+    this.app.post(
+      "/events/:id/rsvp",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        const eventId = Number(req.params.id);
+        const currentUser = getAuthenticatedUser(sessionStore(req));
+
+        if (Number.isNaN(eventId) || !currentUser) {
+          res.status(400).render("partials/error", {
+            message: "Invalid RSVP request.",
+            layout: false,
+          });
+          return;
+        }
+
+        await this.eventController.toggleRSVPFromForm(
+          res,
+          eventId,
+          currentUser.userId,
+          touchAppSession(sessionStore(req)),
+        );
       }),
     );
 
