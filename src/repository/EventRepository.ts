@@ -46,5 +46,13 @@ class EventRepository implements IEventRepository {
 
 // factory function so composition can create repo
 export function CreateEventRepository(): IEventRepository {
-    return new EventRepository();
+    const repo = new EventRepository();
+
+    repo.create("Campus Concert", "Live music performance on the quad featuring student bands", "Student Union Plaza", "music", "published", 200, new Date("2026-04-20T18:00:00"), new Date("2026-04-20T21:00:00"), "seed-user");
+    repo.create("Spring Basketball Tournament", "Intramural 3-on-3 basketball tournament open to all students", "Recreation Center", "sports", "published", 60, new Date("2026-04-19T10:00:00"), new Date("2026-04-19T16:00:00"), "seed-user");
+    repo.create("CS Research Symposium", "Undergraduate and graduate students present their research projects", "Computer Science Building", "academic", "published", null, new Date("2026-04-25T13:00:00"), new Date("2026-04-25T17:00:00"), "seed-user");
+    repo.create("Club Fair", "Meet student organizations and sign up for clubs across campus", "Campus Center", "social", "published", null, new Date("2026-04-22T11:00:00"), new Date("2026-04-22T14:00:00"), "seed-user");
+    repo.create("Food Truck Festival", "Dozen local food trucks on campus for a one-day outdoor festival", "Main Quad", "food", "published", null, new Date("2026-04-18T12:00:00"), new Date("2026-04-18T20:00:00"), "seed-user");
+
+    return repo;
 }
