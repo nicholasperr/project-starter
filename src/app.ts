@@ -34,7 +34,6 @@ function sessionStore(req: Request): AppSessionStore {
 class ExpressApp implements IApp {
   private readonly app: express.Express;
 
-  // now includes eventController so routes can call RSVP logic
   constructor(
     private readonly authController: IAuthController,
     private readonly eventController: IEventController,
@@ -47,7 +46,6 @@ class ExpressApp implements IApp {
   }
 
   private registerMiddleware(): void {
-    // Serve static files from src/static (create this directory to add your own assets)
     this.app.use(express.static(path.join(process.cwd(), "src/static")));
     this.app.use(
       session({
@@ -262,13 +260,25 @@ class ExpressApp implements IApp {
         if (!this.requireAuthenticated(req, res)) {
           return;
         }
+        this.logger.info(`GET /events`);
 
         this.eventController.getFilteredEvents(req, res);
       })
     );
-
+    this.app.get(
+      "/new",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`GET /new`);
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showEventCreateForm(res, browserSession);
+      }),
+    );
     this.app.get(
       "/events/search",
+      
       asyncHandler(async (req, res) => {
         if (!this.requireAuthenticated(req, res)) {
           return;
@@ -276,6 +286,147 @@ class ExpressApp implements IApp {
 
         this.eventController.searchEvents(req, res);
       })
+    );
+      this.app.get(
+      "/events/:id",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`GET /events/${req.params.id}`);
+
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showEventDetail(req, res, browserSession);
+      }),
+    );
+
+    this.app.post(
+      "/events/:id/publish",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`POST /events/${req.params.id}/publish`);
+
+        const browserSession = touchAppSession(sessionStore(req));
+        this.eventController.publishEventFromForm(req, res, browserSession);
+      }),
+    );
+
+    this.app.post(
+      "/events/:id/cancel",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`POST /events/${req.params.id}/cancel`);
+
+        const browserSession = touchAppSession(sessionStore(req));
+        this.eventController.cancelEventFromForm(req, res, browserSession);
+      }),
+    );
+    this.app.post(
+      "/events/:id/rsvp",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        const eventId = Number(req.params.id);
+        const currentUser = getAuthenticatedUser(sessionStore(req));
+
+        if (Number.isNaN(eventId) || !currentUser) {
+          res.status(400).render("partials/error", {
+            message: "Invalid RSVP request.",
+            layout: false,
+          });
+          return;
+        }
+
+        await this.eventController.toggleRSVPFromForm(
+          res,
+          eventId,
+          currentUser.userId,
+          touchAppSession(sessionStore(req)),
+        );
+      }),
+    );
+
+    this.app.get(
+      "/my-rsvps",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showRSVPDashboard(res, browserSession);
+      }),
+    );
+    
+
+
+    this.app.post(
+      "/events",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`POST /events`);
+
+        this.eventController.createEvent(req, res);
+      }),
+    );
+
+    this.app.get(
+      "/events/:id/edit",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`GET /events/${req.params.id}/edit`);
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showEventEditForm(req, res, browserSession);
+      }),
+    );
+
+    this.app.post(
+      "/events/:id",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        this.eventController.editEvent(req, res);
+      }),
+    );
+
+
+    this.app.post(
+      "/events/:id/rsvp",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        const eventId = Number(req.params.id);
+        const currentUser = getAuthenticatedUser(sessionStore(req));
+
+        if (Number.isNaN(eventId) || !currentUser) {
+          res.status(400).render("partials/error", {
+            message: "Invalid RSVP request.",
+            layout: false,
+          });
+          return;
+        }
+
+        await this.eventController.toggleRSVPFromForm(
+          res,
+          eventId,
+          currentUser.userId,
+          touchAppSession(sessionStore(req)),
+        );
+      }),
     );
 
     // ── Error handler ────────────────────────────────────────────────
@@ -295,7 +446,6 @@ class ExpressApp implements IApp {
   }
 }
 
-// updated to pass eventController into app
 export function CreateApp(
   authController: IAuthController,
   eventController: IEventController,

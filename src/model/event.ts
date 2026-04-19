@@ -15,7 +15,7 @@ export interface IEvent {
     title: string;
     description: string;
     location: string;
-    categrory: Category;
+    category: Category;
     status: EventStatus;
     capacity: number | null;
     startDatetime: Date;
@@ -31,7 +31,7 @@ export class Event implements IEvent {
     title: string;
     description: string;
     location: string;
-    categrory: Category;
+    category: Category;
     status: EventStatus;
     capacity: number | null;
     startDatetime: Date;
@@ -45,7 +45,7 @@ export class Event implements IEvent {
         this.title = title;
         this.description = description
         this.location = location;
-        this.categrory = category;
+        this.category = category;
         this.status = status;
         this.capacity = capacity;
         this.startDatetime = startDatetime;
@@ -60,7 +60,7 @@ export class Event implements IEvent {
             title = this.title,
             description = this.description, 
             location = this.location, 
-            category = this.categrory, 
+            category = this.category, 
             status = this.status, 
             capacity = this.capacity, 
             startDatetime = this.startDatetime, 
@@ -70,7 +70,7 @@ export class Event implements IEvent {
         this.title = title;
         this.description = description
         this.location = location;
-        this.categrory = category;
+        this.category = category;
         this.status = status;
         this.capacity = capacity;
         this.startDatetime = startDatetime;

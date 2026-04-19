@@ -7,27 +7,41 @@ import { CreateApp } from "./app";
 import type { IApp } from "./contracts";
 
 import { CreateEventController } from "./controller/EventController";
+import { CreateEventFilterController } from "./controller/EventFilterController";
+import { CreateEventSearchController } from "./controller/EventSearchController";
+
 import { CreateEventRepository } from "./repository/EventRepository";
 import { CreateRSVPRepository } from "./repository/RSVPRepository";
+
 import { CreateLoggingService } from "./service/LoggingService";
 import { CreateEventService } from "./service/EventService";
 
-export function createComposedApp(): IApp {
-
-    const logger = CreateLoggingService();
-
-    // auth setup
-    const userRepo = CreateInMemoryUserRepository();
-    const passwordHasher = CreatePasswordHasher();
-    const authService = CreateAuthService(userRepo, passwordHasher);
-    const adminService = CreateAdminUserService(userRepo, passwordHasher);
-    const authController = CreateAuthController(authService, adminService, logger);
+export function createComposedApp(logger?: ILoggingService): IApp {
+  const resolvedLogger = logger ?? CreateLoggingService();
 
   // Authentication & authorization wiring
-  const rsvpRepository = CreateRSVPRepository();
+  // Auth wiring
+  const authUsers = CreateInMemoryUserRepository();
+  const passwordHasher = CreatePasswordHasher();
+  const authService = CreateAuthService(authUsers, passwordHasher);
+  const adminUserService = CreateAdminUserService(authUsers, passwordHasher);
+  const authController = CreateAuthController(
+    authService,
+    adminUserService,
+    resolvedLogger,
+  );
+
+  // Shared repositories
   const eventRepository = CreateEventRepository();
+  const rsvpRepository = CreateRSVPRepository();
+
+  // Event detail / lifecycle
   const eventService = CreateEventService(eventRepository, rsvpRepository);
-  const eventController = CreateEventController(eventService, logger);
+  const eventController = CreateEventController(
+    eventService,
+    resolvedLogger,
+  );
+
 
   return CreateApp(authController, eventController, logger);
 }

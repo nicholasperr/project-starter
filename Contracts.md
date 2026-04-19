@@ -29,7 +29,7 @@
 
 ## Repository Interface Contracts
 
-### EventRepository.findAll()
+### EventRepository.getAll()
 - **Returns**: `Event[]`
 - **Notes**: Returns all events regardless of status. Filtering by status will be done on the service layer
 

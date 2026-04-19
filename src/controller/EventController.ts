@@ -6,9 +6,9 @@ import { Category } from "../model/event";
 import { EventTimeFrame } from "../service/EventService";
 
 export interface IEventController {
-    createEvent(res: Response, content: string): void;
-    showEventCreateForm(res: Response): void;
-    showEventEditForm(req: Request, res: Response): void;
+    createEvent(req: Request, res: Response): void;
+    showEventCreateForm(res: Response, session: IAppBrowserSession): void;
+    showEventEditForm(req: Request, res: Response, session: IAppBrowserSession): void;
     editEvent(req: Request, res: Response): void;
     toggleRSVPFromForm(
         res: Response,
@@ -16,6 +16,10 @@ export interface IEventController {
         userId: string,
         session: IAppBrowserSession,
     ): Promise<void>;
+    showEventDetail(req: Request, res: Response, session: IAppBrowserSession): void;
+    publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void;
+    cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void;
+    showRSVPDashboard(res: Response, session: IAppBrowserSession): void;
     searchEvents(req: Request, res: Response): void;
     getFilteredEvents(req: Request, res: Response): void;
 }
@@ -25,19 +29,142 @@ class EventController implements IEventController {
         private readonly eventService: IEventService,
         private readonly logger: ILoggingService,
     ) {}
+        showEventDetail(req: Request, res: Response, session: IAppBrowserSession): void {
+        const eventId = Number(req.params.id);
 
-    createEvent(res: Response, content: string) {
-        const { title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId } = JSON.parse(content);
-        const result = this.eventService.createEvent(
+        if (Number.isNaN(eventId)) {
+            res.status(400).render("partials/error", {
+                message: "Invalid event id",
+                layout: false,
+            });
+            return;
+        }
+
+        const user = session.authenticatedUser;
+
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        const result = this.eventService.getVisibleEventById(
+            eventId,
+            user.userId,
+            user.role,
+        );
+
+        if (!result.ok) {
+            res.status(404).render("partials/error", {
+                message: result.value,
+                layout: false,
+            });
+            return;
+        }
+
+        res.render("event/show", {
+            session,
+            pageError: null,
+            event: result.value,
+        });
+    }
+
+    publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void {
+        const eventId = Number(req.params.id);
+
+        if (Number.isNaN(eventId)) {
+            res.status(400).render("partials/error", {
+                message: "Invalid event id",
+                layout: false,
+            });
+            return;
+        }
+
+        const user = session.authenticatedUser;
+
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        const result = this.eventService.publishEvent(eventId, user.userId, user.role);
+
+        if (!result.ok) {
+            res.status(400).render("partials/error", {
+                message: result.value,
+                layout: false,
+            });
+            return;
+        }
+
+        res.redirect(`/events/${eventId}`);
+    }
+
+    cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void {
+        const eventId = Number(req.params.id);
+
+        if (Number.isNaN(eventId)) {
+            res.status(400).render("partials/error", {
+                message: "Invalid event id",
+                layout: false,
+            });
+            return;
+        }
+
+        const user = session.authenticatedUser;
+
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        const result = this.eventService.cancelEvent(eventId, user.userId, user.role);
+
+        if (!result.ok) {
+            res.status(400).render("partials/error", {
+                message: result.value,
+                layout: false,
+            });
+            return;
+        }
+
+        res.redirect(`/events/${eventId}`);
+    }
+    
+    createEvent(req: Request, res: Response) {
+        const {
             title,
             description,
             location,
             category,
             status,
             capacity,
+            startDatetime,
+            endDatetime,
+            organizerId,
+        } = req.body;
+
+        const parsedCapacity = capacity !== undefined && capacity !== "" ? Number(capacity) : null;
+        const parsedOrganizerId = organizerId;
+
+        const result = this.eventService.createEvent(
+            title,
+            description,
+            location,
+            category,
+            status,
+            parsedCapacity,
             new Date(startDatetime),
             new Date(endDatetime),
-            organizerId,
+            parsedOrganizerId,
         );
 
         if (!result.ok) {
@@ -48,17 +175,17 @@ class EventController implements IEventController {
             return;
         }
 
-        res.status(201).json({ ok: true, value: "Event created" });
         res.redirect("/events");
     }
 
-    showEventCreateForm(res: Response) {
+    showEventCreateForm(res: Response, session: IAppBrowserSession) {
         res.render("event/create", {
             pageTitle: "Create Event",
+            session: session,
         });
     }
 
-    showEventEditForm(req: Request, res: Response) {
+    showEventEditForm(req: Request, res: Response, session: IAppBrowserSession) {
         const eventId = Number(req.params.id);
         if (Number.isNaN(eventId)) {
             res.status(400).render("partials/error", {
@@ -76,10 +203,18 @@ class EventController implements IEventController {
             });
             return;
         }
+        if (session.authenticatedUser?.userId !== result.value.organizerId) {
+            res.status(403).render("partials/error", {
+                message: "You do not have permission to edit this event",
+                layout: false,
+            });
+            return;
+        }
 
         res.render("event/edit", {
             pageTitle: "Edit Event",
             event: result.value,
+            session: session,
         });
     }
 
@@ -113,8 +248,8 @@ class EventController implements IEventController {
             category,
             status,
             parsedCapacity,
-            startDatetime ? new Date(startDatetime) : undefined,
-            endDatetime ? new Date(endDatetime) : undefined,
+            new Date(startDatetime),
+            new Date(endDatetime),
         );
 
         if (!result.ok) {
@@ -200,6 +335,42 @@ class EventController implements IEventController {
         res.render("home", {
             session,
             pageError: null,
+        });
+    }
+
+    showRSVPDashboard(res: Response, session: IAppBrowserSession): void {
+        const user = session.authenticatedUser;
+
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        if (user.role !== "user") {
+            res.status(403).render("partials/error", {
+                message: "Dashboard only available to members",
+                layout: false,
+            });
+            return;
+        }
+
+        const result = this.eventService.getUserDashboard(user.userId);
+
+        if (!result.ok) {
+            res.status(400).render("partials/error", {
+                message: result.value,
+                layout: false,
+            });
+            return;
+        }
+
+        res.render("event/dashboard", {
+            session,
+            upcoming: result.value.upcoming,
+            past: result.value.past,
         });
     }
 }

@@ -1,0 +1,35 @@
+<section class="mb-5 p-6 border rounded-2xl bg-white shadow">
+  <h1 class="text-2xl font-bold mb-4">My RSVPs</h1>
+</section>
+
+<section class="mb-5 p-6 border rounded-2xl bg-white shadow">
+  <h2 class="text-xl font-semibold mb-3">Upcoming Events</h2>
+
+  <% if (upcoming.length === 0) { %>
+    <p>No upcoming RSVPs</p>
+  <% } %>
+
+  <% upcoming.forEach(item => { %>
+    <div class="mb-3">
+      <strong><%= item.event.title %></strong>
+      <p>Status: <%= item.rsvp.status %></p>
+      <p>Start: <%= item.event.startDatetime.toLocaleString() %></p>
+    </div>
+  <% }) %>
+</section>
+
+<section class="p-6 border rounded-2xl bg-white shadow">
+  <h2 class="text-xl font-semibold mb-3">Past Events</h2>
+
+  <% if (past.length === 0) { %>
+    <p>No past RSVPs</p>
+  <% } %>
+
+  <% past.forEach(item => { %>
+    <div class="mb-3">
+      <strong><%= item.event.title %></strong>
+      <p>Status: <%= item.rsvp.status %></p>
+      <p>Start: <%= item.event.startDatetime.toLocaleString() %></p>
+    </div>
+  <% }) %>
+</section>

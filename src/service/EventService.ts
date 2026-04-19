@@ -9,15 +9,21 @@ export type EventTimeFrame = "all_upcoming" | "this_week" | "this_weekend"
 
 export interface IEventService {
     createEvent(title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number | null, startDatetime: Date, endDatetime: Date, organizerId: string): Result<void,string>;
+    createEvent(title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number | null, startDatetime: Date, endDatetime: Date, organizerId: string): Result<void,string>;
     getEventById(eventId: number): Result<IEvent,string>;
     getAllEvents(): Result<IEvent[],string>;
     updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date): Result<void,string>;
     deleteEvent(eventId: number): Result<void,string>;
     createRSVP(eventId: number, userId: string, status?: RSVPStatus): Result<void,string>;
+    createRSVP(eventId: number, userId: string, status?: RSVPStatus): Result<void,string>;
     toggleRSVP(eventId: number, userId: string): Result<string, string>;    
     getRSVPsForEvent(eventId: number): Result<IRSVP[],string>;
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): Result<void,string>;
     deleteRSVP(eventId: number): Result<void,string>;
+    getUserDashboard(userId: string): Result<{ upcoming: any[]; past: any[] }, string>;
+    getVisibleEventById(eventId: number, userId: string, role: string): Result<IEvent, string>;
+    publishEvent(eventId: number, userId: string, role: string): Result<IEvent, string>;
+    cancelEvent(eventId: number, userId: string, role: string): Result<IEvent, string>;
 
     searchEvents(query: string): Result<IEvent[], EventError>;
     getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): Result<IEvent[], EventError>;
@@ -74,12 +80,15 @@ class EventService implements IEventService {
         }
     }
 
-    createRSVP(eventId: number, userId: string, status: RSVPStatus) {
+    createRSVP(eventId: number, userId: string, status?: RSVPStatus) {
         try {
-            this.rsvpRepository.create(eventId, userId, status);
+            const finalStatus: RSVPStatus = status ?? "pending";
+
+            this.rsvpRepository.create(eventId, userId, finalStatus);
+
             return Ok(undefined);
         } catch (error) {
-            return Err(error instanceof Error ? error.message : 'Unable to create RSVP');
+            return Err(error instanceof Error ? error.message : "Unable to create RSVP");
         }
     }
     
@@ -225,26 +234,20 @@ class EventService implements IEventService {
     // handles RSVP behavior (new RSVP, cancel existing RSVP, and reactivate cancelled RSVP)
     toggleRSVP(eventId: number, userId: string): Result<string, string> {
 
-        // make sure event exists first
         const event = this.eventRepository.findById(eventId);
 
         if (!event) {
             return Err("Event not found");
         }
 
-        // get all RSVPs for this event
         const allRSVPs = this.rsvpRepository.findByEventId(eventId);
 
-        // check if this user already has one
         const existing = allRSVPs.find(r => r.userId === userId);
 
-        // #1: no RSVP yet → create one
         if (!existing) {
 
-            // default is going
             let status: RSVPStatus = "going";
 
-            // if event has a set capacity, check if it's full
             if (event.capacity !== null) {
 
                 const goingCount = allRSVPs.filter(r => r.status === "going").length;
@@ -259,7 +262,6 @@ class EventService implements IEventService {
             return Ok(status);
         }
 
-        // #2: RSVP already active, cancel
         if (existing.status === "going" || existing.status === "waitlisted") {
 
             this.rsvpRepository.update(existing.id, "cancelled");
@@ -267,10 +269,8 @@ class EventService implements IEventService {
             return Ok("cancelled");
         }
 
-        // #3: RSVP cancelled, reactivate
         if (existing.status === "cancelled") {
 
-            // default is going again
             let status: RSVPStatus = "going";
 
             if (event.capacity !== null) {
@@ -288,6 +288,50 @@ class EventService implements IEventService {
         }
 
         return Err("Invalid state");
+    }
+
+    getUserDashboard(userId: string): Result<{ upcoming: any[]; past: any[] }, string> {
+        try {
+            const allRSVPs = this.rsvpRepository.findAll();
+
+            const userRSVPs = allRSVPs.filter(r => r.userId === userId);
+
+            const joined = userRSVPs.map(rsvp => {
+                const event = this.eventRepository.findById(rsvp.eventId);
+                return { rsvp, event };
+            }).filter(item => item.event !== null);
+
+            const now = new Date();
+
+            const upcoming: any[] = [];
+            const past: any[] = [];
+
+            for (const item of joined) {
+                const event = item.event!;
+
+                if (
+                    event.status === "cancelled" ||
+                    event.status === "past" ||
+                    event.startDatetime < now
+                ) {
+                    past.push(item);
+                } else {
+                    upcoming.push(item);
+                }
+            }
+
+            upcoming.sort((a, b) =>
+                a.event.startDatetime.getTime() - b.event.startDatetime.getTime()
+            );
+
+            past.sort((a, b) =>
+                b.event.startDatetime.getTime() - a.event.startDatetime.getTime()
+            );
+
+            return Ok({ upcoming, past });
+        } catch (error) {
+            return Err("Failed to load dashboard");
+        }
     }
 }
 
