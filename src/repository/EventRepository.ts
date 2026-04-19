@@ -1,3 +1,4 @@
+import e from "express";
 import { Ok, Result, Err } from "../lib/result";
 import { IEvent, Event, UpdateEventParams, EventStatus, Category } from "../model/event";
 
@@ -16,6 +17,7 @@ export interface IEventRepository {
     update(id: number, params: UpdateEventParams): Promise<Result<undefined,string>>;
     delete(id: number): Promise<Result<undefined, string>>;
     findAll(): Promise<Result<IEvent[], string>>;
+    findFiltered(query: string, category?: Category, timeframe?: 'this_week'|'this_weekend' | 'all_upcoming'): Promise<Result<IEvent[], string>>;
 }
 
 class EventRepository implements IEventRepository {
@@ -58,7 +60,6 @@ class EventRepository implements IEventRepository {
             return Promise.resolve(Err('Event not found'));
         }
         return new Promise(() => Ok(result));
-
     }
      async update(id: number, params: UpdateEventParams): Promise<Result<undefined,string>> {
         const event = this.events.find(e => e.id === id);
@@ -74,6 +75,37 @@ class EventRepository implements IEventRepository {
     }
     async findAll(): Promise<Result<IEvent[],string>> {
         return Promise.resolve(Ok(this.events));
+    }
+    async findFiltered(query: string, category?: Category, timeframe?: 'this_week'|'this_weekend' | 'all_upcoming'): Promise<Result<IEvent[], string>> {
+        const now = new Date();
+        let filtered = this.events.filter(e => e.status === "published" && e.startDatetime > now);
+        
+        if (query != '') {
+            const lowerQuery = query.toLowerCase();
+            filtered = filtered.filter(e => e.title.toLowerCase().includes(lowerQuery) || 
+                                            e.description.toLowerCase().includes(lowerQuery));
+        }
+        if (category) {
+            filtered = filtered.filter(e => e.category === category);
+        }
+        if (timeframe === "this_week") {
+            const weekEnd = new Date(now);
+            weekEnd.setDate(now.getDate() + 6);
+            filtered = filtered.filter(e => e.startDatetime <= weekEnd);
+        }
+
+        else if (timeframe === "this_weekend") {
+            filtered = filtered.filter(e => [0, 5, 6].includes(e.startDatetime.getDay()) && e.startDatetime <= new Date(now.getTime() + (7-now.getDay())*24*60*60*1000));
+        }
+
+        else if (timeframe === "all_upcoming") {
+            filtered = filtered.filter(e => e.startDatetime >= now)
+        }
+        if (filtered.length === 0) {
+            return Promise.resolve(Err('No events found matching criteria'));
+        }
+        return Promise.resolve(Ok(filtered));
+
     }
 }
 

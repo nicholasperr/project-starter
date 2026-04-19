@@ -3,7 +3,7 @@ import { IRSVP, RSVP, RSVPStatus } from "../model/rsvp";
 
 export interface IRSVPRepository {
     create(eventId: number, userId: string, status: string): Promise<Result<undefined, string>>;
-    findById(id: number): Promise<Result<IRSVP,string>>;
+    findByIds(userid: string, eventId: number): Promise<Result<IRSVP,string>>;
     findByEventId(eventId: number): Promise<Result<IRSVP[],string>>;
     update(id: number, status: string): Promise<Result<undefined,string>>;
     delete(id: number): Promise<Result<undefined,string>>;
@@ -19,8 +19,8 @@ class RSVPRepository implements IRSVPRepository {
         this.rsvps.push(rsvp);
         return Promise.resolve(Ok(undefined));
     }
-    findById(id: number) {
-        const rsvp = this.rsvps.find(r => r.id === id) || null;
+    findByIds(userId: string, eventId: number) {
+        const rsvp = this.rsvps.find(r => r.userId === userId && eventId === r.eventId) || null;
         if (rsvp === null) {
             return Promise.resolve(Err('RSVP not found'));
         }
