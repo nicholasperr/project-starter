@@ -21,7 +21,7 @@ export interface IEventService {
     getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, string>>;
     publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, string>>;
     cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, string>>;
-    searchEvents(query: string): Promise<Result<IEvent[], string>>;
+    searchEvents(query: string, category?: Category, timeframe?: EventTimeFrame): Promise<Result<IEvent[], string>>;
 }
 
 class EventService implements IEventService {

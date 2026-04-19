@@ -262,7 +262,7 @@ class ExpressApp implements IApp {
         }
         this.logger.info(`GET /events`);
 
-        this.eventController.getFilteredEvents(req, res);
+        this.eventController.searchEvents(req, res);
       })
     );
     this.app.get(
