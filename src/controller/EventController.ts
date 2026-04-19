@@ -2,6 +2,8 @@ import type { Request, Response } from "express";
 import type { ILoggingService } from "../service/LoggingService";
 import type { IEventService } from "../service/EventService";
 import type { IAppBrowserSession } from "../session/AppSession";
+import { Category } from "../model/event";
+import { EventTimeFrame } from "../service/EventService";
 
 export interface IEventController {
     createEvent(req: Request, res: Response): void;
@@ -18,6 +20,8 @@ export interface IEventController {
     publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void;
     cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void;
     showRSVPDashboard(res: Response, session: IAppBrowserSession): void;
+    searchEvents(req: Request, res: Response): void;
+    getFilteredEvents(req: Request, res: Response): void;
 }
 
 class EventController implements IEventController {
@@ -256,8 +260,52 @@ class EventController implements IEventController {
             return;
         }
 
-        res.redirect("/events");
+        res.redirect(`/events/${eventId}`);
     }
+
+    searchEvents(req: Request, res: Response): void {
+        
+        const query = (req.query.query as string ?? "")
+
+        const result = this.eventService.searchEvents(query);
+        if (result.ok === false) {
+            res.status(400).json({ error: result.value.message});
+            return;
+        }
+
+        res.render("events/index", {
+            events: result.value,
+            category: null,
+            timeframe: null,
+            query: query,
+            session: (req as any).session,
+            pageError: null
+        });
+    }
+
+    getFilteredEvents(req: Request, res: Response): void {
+
+        const category = req.query.category as Category | undefined;
+        const timeframe = req.query.timeframe as EventTimeFrame | undefined;
+
+        const result = this.eventService.getFilteredEvents(category, timeframe)
+        if (result.ok === false) {
+            res.status(400).json({ error: result.value.message });
+            return;
+        }
+        
+        res.render("events/index", {
+            events: result.value,
+            category: category ?? null,
+            timeframe: timeframe ?? null, 
+            query: null,
+            session: (req as any).session,
+            pageError: null
+        });
+        
+    }
+
+    
     async toggleRSVPFromForm(
         res: Response,
         eventId: number,

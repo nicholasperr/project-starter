@@ -14,15 +14,12 @@ import { CreateEventRepository } from "./repository/EventRepository";
 import { CreateRSVPRepository } from "./repository/RSVPRepository";
 
 import { CreateLoggingService } from "./service/LoggingService";
-import type { ILoggingService } from "./service/LoggingService";
-
 import { CreateEventService } from "./service/EventService";
-import { CreateEventFilterService } from "./service/EventFilterService";
-import { CreateEventSearchService } from "./service/EventSearchService";
 
 export function createComposedApp(logger?: ILoggingService): IApp {
   const resolvedLogger = logger ?? CreateLoggingService();
 
+  // Authentication & authorization wiring
   // Auth wiring
   const authUsers = CreateInMemoryUserRepository();
   const passwordHasher = CreatePasswordHasher();
@@ -45,23 +42,6 @@ export function createComposedApp(logger?: ILoggingService): IApp {
     resolvedLogger,
   );
 
-  // Event filter
-  const eventFilterService = CreateEventFilterService(eventRepository);
-  const eventFilterController = CreateEventFilterController(
-    eventFilterService,
-  );
 
-  // Event search
-  const eventSearchService = CreateEventSearchService(eventRepository);
-  const eventSearchController = CreateEventSearchController(
-    eventSearchService,
-  );
-
-  return CreateApp(
-    authController,
-    eventController,
-    resolvedLogger,
-    eventFilterController,
-    eventSearchController,
-  );
+  return CreateApp(authController, eventController, logger);
 }

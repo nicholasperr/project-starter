@@ -3,19 +3,31 @@ import { IRSVP, RSVPStatus } from "../model/rsvp";
 import { IEventRepository } from "../repository/EventRepository";
 import { IRSVPRepository } from "../repository/RSVPRepository";
 import { Ok, Err, type Result } from "../lib/result";
+import { EventError } from "./errors";
+
+export type EventTimeFrame = "all_upcoming" | "this_week" | "this_weekend"
 
 export interface IEventService {
+    createEvent(title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number | null, startDatetime: Date, endDatetime: Date, organizerId: string): Result<void,string>;
     createEvent(title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number | null, startDatetime: Date, endDatetime: Date, organizerId: string): Result<void,string>;
     getEventById(eventId: number): Result<IEvent,string>;
     getAllEvents(): Result<IEvent[],string>;
     updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date): Result<void,string>;
     deleteEvent(eventId: number): Result<void,string>;
     createRSVP(eventId: number, userId: string, status?: RSVPStatus): Result<void,string>;
+    createRSVP(eventId: number, userId: string, status?: RSVPStatus): Result<void,string>;
     toggleRSVP(eventId: number, userId: string): Result<string, string>;    
     getRSVPsForEvent(eventId: number): Result<IRSVP[],string>;
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): Result<void,string>;
     deleteRSVP(eventId: number): Result<void,string>;
     getUserDashboard(userId: string): Result<{ upcoming: any[]; past: any[] }, string>;
+    getVisibleEventById(eventId: number, userId: string, role: string): Result<IEvent, string>;
+    publishEvent(eventId: number, userId: string, role: string): Result<IEvent, string>;
+    cancelEvent(eventId: number, userId: string, role: string): Result<IEvent, string>;
+
+    searchEvents(query: string): Result<IEvent[], EventError>;
+    getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): Result<IEvent[], EventError>;
+
     getVisibleEventById(eventId: number, userId: string, role: string): Result<IEvent, string>;
     publishEvent(eventId: number, userId: string, role: string): Result<IEvent, string>;
     cancelEvent(eventId: number, userId: string, role: string): Result<IEvent, string>;
@@ -177,6 +189,49 @@ class EventService implements IEventService {
         return Ok(updated);
     }
 
+    searchEvents(query: string): Result<IEvent[], EventError> {
+
+        const today = new Date();
+        let events = this.eventRepository.findAll().filter(e => e.status === "published").filter(e => e.startDatetime > today);
+
+        if (query === "") {
+            return Ok(events);
+        }
+
+        else {
+            events = events.filter(e => e.title.toLowerCase().includes(query.toLowerCase()) || e.description.toLowerCase().includes(query.toLowerCase()) || e.location.toLowerCase().includes(query.toLowerCase()))
+            return Ok(events);
+        }
+    }
+
+    getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): Result<IEvent[], EventError> {
+        let events = this.eventRepository.findAll().filter(e => e.status === "published");
+        
+        if (category) { events = events.filter(e => e.categrory === category) }
+        const today = new Date();
+        
+        if (timeframe === "this_week") {
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay());
+
+            const weekEnd = new Date(today);
+            weekEnd.setDate(today.getDate() - today.getDay() + 6);
+
+            events = events.filter(e => e.startDatetime >= weekStart && e.startDatetime <= weekEnd);
+        }
+
+        else if (timeframe === "this_weekend") {
+            events = events.filter(e => [0, 5, 6].includes(e.startDatetime.getDay()));
+        }
+
+        else if (timeframe === "all_upcoming") {
+            events = events.filter(e => e.startDatetime >= today)
+        }
+
+        return Ok(events)
+    }
+
+    // handles RSVP behavior (new RSVP, cancel existing RSVP, and reactivate cancelled RSVP)
     toggleRSVP(eventId: number, userId: string): Result<string, string> {
 
         const event = this.eventRepository.findById(eventId);
@@ -286,3 +341,4 @@ export const CreateEventService = (
 ): IEventService => {
     return new EventService(eventRepository, rsvpRepository);
 };
+
