@@ -55,11 +55,12 @@ class EventRepository implements IEventRepository {
         return Promise.resolve(Ok(undefined));
     }
     async findById(id: number): Promise<Result<IEvent, string>> {
-        const result = this.events.find(e => e.id === id) || null;
-        if (result === null) {
+        console.log(`Finding event by ID: ${id}`);
+        const result = this.events.find(e => e.id === id);
+        if (result === undefined) {
             return Promise.resolve(Err('Event not found'));
         }
-        return new Promise(() => Ok(result));
+        return Promise.resolve(Ok(result));
     }
      async update(id: number, params: UpdateEventParams): Promise<Result<undefined,string>> {
         const event = this.events.find(e => e.id === id);

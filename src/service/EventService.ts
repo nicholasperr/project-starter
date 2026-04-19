@@ -17,7 +17,7 @@ export interface IEventService {
     getRSVPsForEvent(eventId: number): Promise<Result<IRSVP[],string>>;
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined,string>>;
     deleteRSVP(eventId: number): Promise<Result<undefined,string>>;
-    getUserDashboard(userId: string): Promise<Result<{ upcoming: any[]; past: any[] }, string>>;
+    getUserDashboard(userId: string): Promise<Result<{ upcoming: {rsvp: IRSVP, event: IEvent}[]; past: {rsvp: IRSVP, event: IEvent}[] }, string>>;
     getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, string>>;
     publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, string>>;
     cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, string>>;
@@ -114,21 +114,20 @@ class EventService implements IEventService {
     }
 
     // handles RSVP behavior (new RSVP, cancel existing RSVP, and reactivate cancelled RSVP)
-    async toggleRSVP(eventId: number, userId: string){
+    async toggleRSVP(eventId: number, userId: string): Promise<Result<undefined,string>>{
 
         let event = await this.eventRepository.findById(eventId);
-        if (!event.ok) return event;
+        if (!event.ok) return event as Err<string>;
 
         const allRSVPs = await this.rsvpRepository.findByEventId(eventId);
-        if (!allRSVPs.ok) return allRSVPs;
+        const goingCount = allRSVPs.ok ? allRSVPs.value.filter(r => r.status === "going").length : 0; 
 
         const rsvp = await this.rsvpRepository.findByIds(userId, eventId);
         
         if (!rsvp.ok) {//when we have actual errors need to check if its not found or a different error and only do this on not found and return the error otherwise
 
             let status: RSVPStatus = "going";
-            if (event.value.capacity !== null) {
-                const goingCount = allRSVPs.value.filter(r => r.status === "going").length;
+            if (event.value.capacity !== null) {;
                 if (goingCount >= event.value.capacity) status = "waitlisted"
             }
 
@@ -142,8 +141,6 @@ class EventService implements IEventService {
         let status: RSVPStatus = "going";
 
         if (event.value.capacity !== null) {
-
-            const goingCount = allRSVPs.value.filter(r => r.status === "going").length;
             if (goingCount >= event.value.capacity) status = "waitlisted";
         }
         return await this.rsvpRepository.update(rsvp.value.id, status);
@@ -152,28 +149,29 @@ class EventService implements IEventService {
 
     async getUserDashboard(userId: string){
         const allRSVPs = await this.rsvpRepository.findAll();
-        if (!allRSVPs.ok) return allRSVPs;
+        if (!allRSVPs.ok) return allRSVPs as Err<string>;
 
         const userRSVPs = allRSVPs.value.filter(r => r.userId === userId);
 
-        const joined =  userRSVPs.map(async rsvp => { // we might have to redo this with a promise all or a reducer to build a big promise so that the fetches happen in parallel
+        let joined =  await Promise.all(userRSVPs.map(async rsvp => { 
             const event = await this.eventRepository.findById(rsvp.eventId);
             if (!event.ok) return { rsvp, event: null };
             return { rsvp, event: event.value };
-        }).filter(async item => (await item).event !== null);
+        }));
+        const filtered = joined.filter((v) => v.event != null) as {rsvp:IRSVP,event:IEvent}[]
 
         const now = new Date();
 
-        const upcoming: any[] = [];
-        const past: any[] = [];
+        const upcoming = [];
+        const past = [];
 
-        for (const item of joined) {
-            const event = (await item).event!;
+        for (const item of filtered) {
+            const event = item.event!;
 
             if (
                 event.status === "cancelled" ||
                 event.status === "past" ||
-                (await item).rsvp.status === "cancelled" ||
+                item.rsvp.status === "cancelled" ||
                 event.startDatetime < now
             ) {
                 past.push(item);

@@ -4,6 +4,7 @@ import type { IEventService } from "../service/EventService";
 import type { IAppBrowserSession } from "../session/AppSession";
 import { Category } from "../model/event";
 import { EventTimeFrame } from "../service/EventService";
+import { time } from "node:console";
 
 export interface IEventController {
     createEvent(req: Request, res: Response): Promise<void>;
@@ -30,7 +31,9 @@ class EventController implements IEventController {
     ) {}
 
     async showEventDetail(req: Request, res: Response, session: IAppBrowserSession){
+        this.logger.info(`Showing event detail for event ID: ${req.params.id}`);
         const eventId = Number(req.params.id);
+        console.log("Event ID from params:", req.params.id, "Parsed event ID:", eventId);
 
         if (Number.isNaN(eventId)) {
             res.status(400).render("partials/error", {
@@ -203,7 +206,7 @@ class EventController implements IEventController {
             });
             return;
         }
-        if (session.authenticatedUser?.userId !== result.value.organizerId) {
+        if (session.authenticatedUser?.userId !== result.value.organizerId && session.authenticatedUser?.role !== "admin") {
             res.status(403).render("partials/error", {
                 message: "You do not have permission to edit this event",
                 layout: false,
@@ -277,9 +280,9 @@ class EventController implements IEventController {
 
         res.render("events/index", {
             events: result.value,
-            category: null,
-            timeframe: null,
             query: query,
+            category: category,
+            timeframe: timeframe,
             session: (req as any).session,
             pageError: null
         });
