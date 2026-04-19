@@ -1,3 +1,4 @@
+import { Ok, Result, Err } from "../lib/result";
 import { IEvent, Event, UpdateEventParams, EventStatus, Category } from "../model/event";
 
 export interface IEventRepository {
@@ -10,11 +11,11 @@ export interface IEventRepository {
         capacity: number, 
         startDatetime: Date, 
         endDatetime: Date, 
-        organizerId: string): void;
-    findById(id: number): IEvent | null;
-    update(id: number, params: UpdateEventParams): IEvent;
-    delete(id: number): void;
-    findAll(): IEvent[];
+        organizerId: string): Promise<Result<undefined, string>>;
+    findById(id: number): Promise<Result<IEvent, string>>;
+    update(id: number, params: UpdateEventParams): Promise<Result<undefined,string>>;
+    delete(id: number): Promise<Result<undefined, string>>;
+    findAll(): Promise<Result<IEvent[], string>>;
 }
 
 class EventRepository implements IEventRepository {
@@ -46,26 +47,33 @@ class EventRepository implements IEventRepository {
     ];
     private nextId: number = 3;
 
-    create( title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number | null = null , startDatetime: Date, endDatetime: Date, organizerId: string): void {
+    async create( title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number | null = null , startDatetime: Date, endDatetime: Date, organizerId: string): Promise<Result<undefined, string>> {
         const event = new Event(this.nextId++, title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId);
         this.events.push(event);
+        return Promise.resolve(Ok(undefined));
     }
-    findById(id: number): IEvent | null {
-        return this.events.find(e => e.id === id) || null;
+    async findById(id: number): Promise<Result<IEvent, string>> {
+        const result = this.events.find(e => e.id === id) || null;
+        if (result === null) {
+            return Promise.resolve(Err('Event not found'));
+        }
+        return new Promise(() => Ok(result));
+
     }
-    update(id: number, params: UpdateEventParams): IEvent {
+     async update(id: number, params: UpdateEventParams): Promise<Result<undefined,string>> {
         const event = this.events.find(e => e.id === id);
         if (event === undefined) {
-            throw new Error('Event not found');
+            return Promise.resolve(Err('Event not found'));
         }
         event.updateEvent(params);
-        return event;
+        return Promise.resolve(Ok(undefined));
     }
-    delete(id: number): void {
+    async delete(id: number): Promise<Result<undefined, string>> {
         this.events = this.events.filter(e => e.id !== id);
+        return Promise.resolve(Ok(undefined));
     }
-    findAll(): IEvent[] {
-        return this.events;
+    async findAll(): Promise<Result<IEvent[],string>> {
+        return Promise.resolve(Ok(this.events));
     }
 }
 
