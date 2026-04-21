@@ -3,25 +3,27 @@ import { IRSVP, RSVPStatus } from "../model/rsvp";
 import { IEventRepository } from "../repository/EventRepository";
 import { IRSVPRepository } from "../repository/RSVPRepository";
 import { Ok, Err, type Result } from "../lib/result";
+import { EventError, EventNotFound, Unauthorized, InvalidInput, InvalidState } from "../lib/errors";
 
 export type EventTimeFrame = "all_upcoming" | "this_week" | "this_weekend"
 
 export interface IEventService {
-    createEvent(title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number | null, startDatetime: Date, endDatetime: Date, organizerId: string): Promise<Result<undefined,string>>;
-    getEventById(eventId: number): Promise<Result<IEvent,string>>;
-    getAllEvents(): Promise<Result<IEvent[],string>>;
-    updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date): Promise<Result<undefined,string>>;
-    deleteEvent(eventId: number): Promise<Result<undefined,string>>;
-    createRSVP(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined,string>>;
-    toggleRSVP(eventId: number, userId: string): Promise<Result<undefined, string>>;    
-    getRSVPsForEvent(eventId: number): Promise<Result<IRSVP[],string>>;
-    updateRSVP(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined,string>>;
-    deleteRSVP(eventId: number): Promise<Result<undefined,string>>;
-    getUserDashboard(userId: string): Promise<Result<{ upcoming: {rsvp: IRSVP, event: IEvent}[]; past: {rsvp: IRSVP, event: IEvent}[] }, string>>;
-    getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, string>>;
-    publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, string>>;
-    cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, string>>;
-    searchEvents(query: string, category?: Category, timeframe?: EventTimeFrame): Promise<Result<IEvent[], string>>;
+    createEvent(title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number | null, startDatetime: Date, endDatetime: Date, organizerId: string): Promise<Result<undefined,EventError>>;
+    getEventById(eventId: number): Promise<Result<IEvent,EventError>>;
+    getAllEvents(): Promise<Result<IEvent[],EventError>>;
+    updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date): Promise<Result<undefined,EventError>>;
+    deleteEvent(eventId: number): Promise<Result<undefined,EventError>>;
+    createRSVP(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined,EventError>>;
+    toggleRSVP(eventId: number, userId: string): Promise<Result<undefined, EventError>>;    
+    getRSVPsForEvent(eventId: number): Promise<Result<IRSVP[],EventError>>;
+    updateRSVP(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined,EventError>>;
+    deleteRSVP(eventId: number, userId: string): Promise<Result<undefined,EventError>>;
+    getUserDashboard(userId: string): Promise<Result<{ upcoming: {rsvp: IRSVP, event: IEvent}[]; past: {rsvp: IRSVP, event: IEvent}[] }, EventError>>;
+    getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, EventError>>;
+    publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>>;
+    cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>>;
+    searchEvents(query: string): Promise<Result<IEvent[], EventError>>;
+    getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): Promise<Result<IEvent[], EventError>>;
 }
 
 class EventService implements IEventService {
@@ -73,7 +75,7 @@ class EventService implements IEventService {
         const canViewDraft = role === "admin" || event.value.organizerId === userId;
 
         if (!canViewDraft && event.value.status === 'draft') {
-            return Err("No Permission to view this event");
+            return Err(Unauthorized("No Permission to view this event"));
         }
 
         return event;
@@ -84,13 +86,13 @@ class EventService implements IEventService {
     async publishEvent(eventId: number, userId: string, role: string) {
         const event = await this.eventRepository.findById(eventId);
 
-        if (!event.ok) return Err("Event not found");
-        if (event.value.status !== "draft") return Err("Only draft events can be published");
+        if (!event.ok) return Err(event.value as EventError);
+        if (event.value.status !== "draft") return Err(InvalidState("Only draft events can be published"));
 
         const isOwner = event.value.organizerId === userId;
         const isAdmin = role === "admin";
 
-        if (!isOwner && !isAdmin) return Err("You are not allowed to publish this event");
+        if (!isOwner && !isAdmin) return Err(Unauthorized("You are not allowed to publish this event"));
 
         return await this.eventRepository.update(eventId, {status: "published"});
     }
@@ -98,26 +100,57 @@ class EventService implements IEventService {
     async cancelEvent(eventId: number, userId: string, role: string) {
         const event = await this.eventRepository.findById(eventId);
 
-        if (!event.ok) return Err("Event not found");
-        if (event.value.status !== "published") return Err("Only published events can be cancelled");
+        if (!event.ok) return Err(event.value as EventError);
+        if (event.value.status !== "published") return Err(InvalidState("Only published events can be cancelled"));
 
         const isOwner = event.value.organizerId === userId;
         const isAdmin = role === "admin";
 
-        if (!isOwner && !isAdmin) return Err("You are not allowed to cancel this event");
+        if (!isOwner && !isAdmin) return Err(Unauthorized("You are not allowed to cancel this event"));
 
         return await this.eventRepository.update(eventId, {status: "cancelled"});
     }
 
-    async searchEvents(query: string, category?: Category, timeframe?: EventTimeFrame){
-        return await this.eventRepository.findFiltered(query, category, timeframe);
+    async searchEvents(query: string){
+        return await this.eventRepository.findFiltered(query);
+    }
+
+    async getFilteredEvents(category?: Category, timeframe?: EventTimeFrame) {
+        const results = await this.eventRepository.findAll()
+        if (results.ok === false) {
+            return results;
+        }
+        let events = results.value.filter(e => e.status === "published");
+        
+        if (category) { events = events.filter(e => e.category === category) }
+        const today = new Date();
+        
+        if (timeframe === "this_week") {
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay());
+
+            const weekEnd = new Date(today);
+            weekEnd.setDate(today.getDate() - today.getDay() + 6);
+
+            events = events.filter(e => e.startDatetime >= weekStart && e.startDatetime <= weekEnd);
+        }
+
+        else if (timeframe === "this_weekend") {
+            events = events.filter(e => [0, 5, 6].includes(e.startDatetime.getDay()));
+        }
+
+        else if (timeframe === "all_upcoming") {
+            events = events.filter(e => e.startDatetime >= today)
+        }
+
+        return Ok(events)
     }
 
     // handles RSVP behavior (new RSVP, cancel existing RSVP, and reactivate cancelled RSVP)
-    async toggleRSVP(eventId: number, userId: string): Promise<Result<undefined,string>>{
+    async toggleRSVP(eventId: number, userId: string): Promise<Result<undefined,EventError>> {
 
         let event = await this.eventRepository.findById(eventId);
-        if (!event.ok) return event as Err<string>;
+        if (!event.ok) return Err(event.value as EventError);
 
         const allRSVPs = await this.rsvpRepository.findByEventId(eventId);
         const goingCount = allRSVPs.ok ? allRSVPs.value.filter(r => r.status === "going").length : 0; 
@@ -149,7 +182,7 @@ class EventService implements IEventService {
 
     async getUserDashboard(userId: string){
         const allRSVPs = await this.rsvpRepository.findAll();
-        if (!allRSVPs.ok) return allRSVPs as Err<string>;
+        if (!allRSVPs.ok) return Err(allRSVPs.value as EventError);
 
         const userRSVPs = allRSVPs.value.filter(r => r.userId === userId);
 

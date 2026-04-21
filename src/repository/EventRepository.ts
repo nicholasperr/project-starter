@@ -13,12 +13,12 @@ export interface IEventRepository {
         capacity: number, 
         startDatetime: Date, 
         endDatetime: Date, 
-        organizerId: string): Promise<Result<undefined, string>>;
+        organizerId: string): Promise<Result<undefined, EventError>>;
     findById(id: number): Promise<Result<IEvent, EventError>>;
     update(id: number, params: UpdateEventParams): Promise<Result<undefined,EventError>>;
-    delete(id: number): Promise<Result<undefined, string>>;
-    findAll(): Promise<Result<IEvent[], string>>;
-    findFiltered(query: string, category?: Category, timeframe?: 'this_week'|'this_weekend' | 'all_upcoming'): Promise<Result<IEvent[], string>>;
+    delete(id: number): Promise<Result<undefined, EventError>>;
+    findAll(): Promise<Result<IEvent[], EventError>>;
+    findFiltered(query: string, category?: Category, timeframe?: 'this_week'|'this_weekend' | 'all_upcoming'): Promise<Result<IEvent[], EventError>>;
 }
 
 class EventRepository implements IEventRepository {
@@ -50,7 +50,7 @@ class EventRepository implements IEventRepository {
     ];
     private nextId: number = 3;
 
-    async create( title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number | null = null , startDatetime: Date, endDatetime: Date, organizerId: string): Promise<Result<undefined, string>> {
+    async create( title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number | null = null , startDatetime: Date, endDatetime: Date, organizerId: string): Promise<Result<undefined, EventError>> {
         const event = new Event(this.nextId++, title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId);
         this.events.push(event);
         return Promise.resolve(Ok(undefined));
@@ -71,14 +71,14 @@ class EventRepository implements IEventRepository {
         event.updateEvent(params);
         return Promise.resolve(Ok(undefined));
     }
-    async delete(id: number): Promise<Result<undefined, string>> {
+    async delete(id: number): Promise<Result<undefined, EventError>> {
         this.events = this.events.filter(e => e.id !== id);
         return Promise.resolve(Ok(undefined));
     }
-    async findAll(): Promise<Result<IEvent[],string>> {
+    async findAll(): Promise<Result<IEvent[],EventError>> {
         return Promise.resolve(Ok(this.events));
     }
-    async findFiltered(query: string, category?: Category, timeframe?: 'this_week'|'this_weekend' | 'all_upcoming'): Promise<Result<IEvent[], string>> {
+    async findFiltered(query: string, category?: Category, timeframe?: 'this_week'|'this_weekend' | 'all_upcoming'): Promise<Result<IEvent[], EventError>> {
         const now = new Date();
         let filtered = this.events.filter(e => e.status === "published" && e.startDatetime > now);
         
@@ -87,27 +87,27 @@ class EventRepository implements IEventRepository {
             filtered = filtered.filter(e => e.title.toLowerCase().includes(lowerQuery) || 
                                             e.description.toLowerCase().includes(lowerQuery));
         }
+
         if (category) {
             filtered = filtered.filter(e => e.category === category);
         }
-        if (timeframe === "this_week") {
-            const weekEnd = new Date(now);
-            weekEnd.setDate(now.getDate() + 6);
-            filtered = filtered.filter(e => e.startDatetime <= weekEnd);
+
+        if (timeframe) {
+            const now = new Date();
+            const endOfWeek = new Date(now);
+            endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
+            const endOfWeekend = new Date(endOfWeek);
+            endOfWeekend.setDate(endOfWeek.getDate() + 2);
+
+            if (timeframe === 'this_week') {
+                filtered = filtered.filter(e => e.startDatetime <= endOfWeek);
+            } else if (timeframe === 'this_weekend') {
+                filtered = filtered.filter(e => e.startDatetime >= endOfWeek && e.startDatetime <= endOfWeekend);
+            }
+            // all_upcoming is already filtered
         }
 
-        else if (timeframe === "this_weekend") {
-            filtered = filtered.filter(e => [0, 5, 6].includes(e.startDatetime.getDay()) && e.startDatetime <= new Date(now.getTime() + (7-now.getDay())*24*60*60*1000));
-        }
-
-        else if (timeframe === "all_upcoming") {
-            filtered = filtered.filter(e => e.startDatetime >= now)
-        }
-        if (filtered.length === 0) {
-            return Promise.resolve(Err('No events found matching criteria'));
-        }
         return Promise.resolve(Ok(filtered));
-
     }
 }
 

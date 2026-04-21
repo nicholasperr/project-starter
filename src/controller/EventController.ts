@@ -23,6 +23,7 @@ export interface IEventController {
     cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
     showRSVPDashboard(res: Response, session: IAppBrowserSession):  Promise<void>;
     searchEvents(req: Request, res: Response): Promise<void>;
+    getFilteredEvents(req: Request, res: Response): Promise<void>;
 }
 
 class EventController implements IEventController {
@@ -220,7 +221,7 @@ class EventController implements IEventController {
         );
 
         if (!result.ok) {
-            const error = result.value as EventError;
+            const error = result.value;
             this.logger.warn(`Event creation failed: ${error.message}`);
             await this.showEventCreateForm(res, session, error.message, req.body);
             return;
@@ -325,10 +326,8 @@ class EventController implements IEventController {
     async searchEvents(req: Request, res: Response){
         
         const query = (req.query.query as string ?? "")
-        const category = req.query.category as Category | undefined;
-        const timeframe = req.query.timeframe as EventTimeFrame | undefined;
 
-        const result = await this.eventService.searchEvents(query, category, timeframe);
+        const result = await this.eventService.searchEvents(query);
         if (result.ok === false) {
             res.status(400).json({ error: result.value});
             return;
@@ -337,12 +336,34 @@ class EventController implements IEventController {
         res.render("events/index", {
             events: result.value,
             query: query,
-            category: category,
-            timeframe: timeframe,
+            category: null,
+            timeframe: null,
             session: (req as any).session,
             pageError: null
         });
     }
+    async getFilteredEvents(req: Request, res: Response): Promise<void> {
+
+        const category = req.query.category as Category | undefined;
+        const timeframe = req.query.timeframe as EventTimeFrame | undefined;
+
+        const result = await this.eventService.getFilteredEvents(category, timeframe)
+        if (result.ok === false) {
+            res.status(400).json({ error: result.value.message });
+            return;
+        }
+        
+        res.render("events/index", {
+            events: result.value,
+            category: category ?? null,
+            timeframe: timeframe ?? null, 
+            query: null,
+            session: (req as any).session,
+            pageError: null
+        });
+        
+    }
+
     
     async toggleRSVPFromForm(
         res: Response,
