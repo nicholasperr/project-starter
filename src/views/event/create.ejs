@@ -1,59 +1,67 @@
 <section class="max-w-3xl p-6 border border-slate-200 rounded-2xl bg-white shadow-lg">
   <h1 class="text-2xl font-bold mb-4"><%= pageTitle %></h1>
+  
+  <% if (pageError) { %>
+    <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded text-red-700">
+      <%= pageError %>
+    </div>
+  <% } %>
+  
   <form action="/events" method="post" class="space-y-4">
     <label class="block">
       <span class="text-slate-700">Title</span>
-      <input type="text" name="title" class="mt-1 block w-full border rounded p-2" required />
+      <input type="text" name="title" class="mt-1 block w-full border rounded p-2" value="<%= formData.title || '' %>" required />
     </label>
 
     <label class="block">
       <span class="text-slate-700">Description</span>
-      <textarea name="description" class="mt-1 block w-full border rounded p-2" rows="4" required></textarea>
+      <textarea name="description" class="mt-1 block w-full border rounded p-2" rows="4" required><%= formData.description || '' %></textarea>
     </label>
 
     <label class="block">
       <span class="text-slate-700">Location</span>
-      <input type="text" name="location" class="mt-1 block w-full border rounded p-2" required />
+      <input type="text" name="location" class="mt-1 block w-full border rounded p-2" value="<%= formData.location || '' %>" required />
     </label>
 
     <label class="block">
       <span class="text-slate-700">Category</span>
       <select name="category" class="mt-1 block w-full border rounded p-2" required>
-        <option value="music">music</option>
-        <option value="sports">sports</option>
-        <option value="technology">technology</option>
-        <option value="art">art</option>
-        <option value="education">education</option>
-        <option value="health">health</option>
-        <option value="business">business</option>
-        <option value="food">food</option>
-        <option value="other">other</option>
+        <option value="" <% if (!formData.category) { %>selected<% } %>>Select a category</option>
+        <option value="music" <% if (formData.category === 'music') { %>selected<% } %>>music</option>
+        <option value="sports" <% if (formData.category === 'sports') { %>selected<% } %>>sports</option>
+        <option value="technology" <% if (formData.category === 'technology') { %>selected<% } %>>technology</option>
+        <option value="art" <% if (formData.category === 'art') { %>selected<% } %>>art</option>
+        <option value="education" <% if (formData.category === 'education') { %>selected<% } %>>education</option>
+        <option value="health" <% if (formData.category === 'health') { %>selected<% } %>>health</option>
+        <option value="business" <% if (formData.category === 'business') { %>selected<% } %>>business</option>
+        <option value="food" <% if (formData.category === 'food') { %>selected<% } %>>food</option>
+        <option value="other" <% if (formData.category === 'other') { %>selected<% } %>>other</option>
       </select>
     </label>
 
     <label class="block">
       <span class="text-slate-700">Status</span>
       <select name="status" class="mt-1 block w-full border rounded p-2">
-        <option value="draft">draft</option>
-        <option value="published">published</option>
-        <option value="cancelled">cancelled</option>
-        <option value="past">past</option>
+        <option value="draft" <% if (formData.status === 'draft') { %>selected<% } %>>draft</option>
+        <option value="published" <% if (formData.status === 'published') { %>selected<% } %>>published</option>
+        <option value="cancelled" <% if (formData.status === 'cancelled') { %>selected<% } %>>cancelled</option>
+        <option value="past" <% if (formData.status === 'past') { %>selected<% } %>>past</option>
       </select>
     </label>
 
     <label class="block">
       <span class="text-slate-700">Capacity</span>
-      <input type="number" name="capacity" class="mt-1 block w-full border rounded p-2" />
+      <input type="number" name="capacity" class="mt-1 block w-full border rounded p-2" value="<%= formData.capacity || '' %>" />
     </label>
 
     <label class="block">
       <span class="text-slate-700">Start</span>
-      <input type="datetime-local" name="startDatetime" class="mt-1 block w-full border rounded p-2" required />
+      <input type="datetime-local" name="startDatetime" class="mt-1 block w-full border rounded p-2" value="<%= formData.startDatetime || '' %>" required />
     </label>
 
     <label class="block">
       <span class="text-slate-700">End</span>
-      <input type="datetime-local" name="endDatetime" class="mt-1 block w-full border rounded p-2" required />
+      <input type="datetime-local" name="endDatetime" class="mt-1 block w-full border rounded p-2" value="<%= formData.endDatetime || '' %>" required />
     </label>
 
     <input type="hidden" name="organizerId" value="<%= session.authenticatedUser.userId %>" />

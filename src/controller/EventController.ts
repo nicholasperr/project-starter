@@ -4,11 +4,12 @@ import type { IEventService } from "../service/EventService";
 import type { IAppBrowserSession } from "../session/AppSession";
 import { Category } from "../model/event";
 import { EventTimeFrame } from "../service/EventService";
+import { EventError, Unauthorized, InvalidInput } from "../lib/errors";
 import { time } from "node:console";
 
 export interface IEventController {
-    createEvent(req: Request, res: Response): Promise<void>;
-    showEventCreateForm(res: Response, session: IAppBrowserSession):  Promise<void>;
+    createEvent(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
+    showEventCreateForm(res: Response, session: IAppBrowserSession, pageError?: string, formData?: any):  Promise<void>;
     showEventEditForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
     editEvent(req: Request, res: Response):  Promise<void>;
     toggleRSVPFromForm(
@@ -142,7 +143,7 @@ class EventController implements IEventController {
         res.redirect(`/events/${eventId}`);
     }
     
-    async createEvent(req: Request, res: Response) {
+    async createEvent(req: Request, res: Response, session: IAppBrowserSession) {
         const {
             title,
             description,
@@ -154,6 +155,54 @@ class EventController implements IEventController {
             endDatetime,
             organizerId,
         } = req.body;
+
+        // Input validation
+        const errors: string[] = [];
+        
+        if (!title || title.trim() === "") {
+            errors.push("Title is required");
+        }
+        
+        if (!description || description.trim() === "") {
+            errors.push("Description is required");
+        }
+        
+        if (!location || location.trim() === "") {
+            errors.push("Location is required");
+        }
+        
+        if (!category) {
+            errors.push("Category is required");
+        }
+        
+        if (capacity !== undefined && capacity !== "" && (isNaN(Number(capacity)) || Number(capacity) < 0)) {
+            errors.push("Capacity must be a positive number");
+        }
+        
+        if (!startDatetime) {
+            errors.push("Start datetime is required");
+        }
+        
+        if (!endDatetime) {
+            errors.push("End datetime is required");
+        }
+        
+        if (startDatetime && endDatetime) {
+            const startDate = new Date(startDatetime);
+            const endDate = new Date(endDatetime);
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                errors.push("Start and end datetimes must be valid dates");
+            } else if (startDate >= endDate) {
+                errors.push("End datetime must be after start datetime");
+            }
+        }
+        
+        // If validation errors exist, re-render form with errors
+        if (errors.length > 0) {
+            this.logger.warn(`Event creation validation failed: ${errors.join(", ")}`);
+            await this.showEventCreateForm(res, session, errors.join(", "), req.body);
+            return;
+        }
 
         const parsedCapacity = capacity !== undefined && capacity !== "" ? Number(capacity) : null;
         const parsedOrganizerId = organizerId;
@@ -171,20 +220,21 @@ class EventController implements IEventController {
         );
 
         if (!result.ok) {
-            res.status(400).render("partials/error", {
-                message: result.value,
-                layout: false,
-            });
+            const error = result.value as EventError;
+            this.logger.warn(`Event creation failed: ${error.message}`);
+            await this.showEventCreateForm(res, session, error.message, req.body);
             return;
         }
 
         res.redirect("/events");
     }
 
-    async showEventCreateForm(res: Response, session: IAppBrowserSession) {
+    async showEventCreateForm(res: Response, session: IAppBrowserSession, pageError?: string, formData?: any) {
         res.render("event/create", {
             pageTitle: "Create Event",
             session: session,
+            pageError: pageError || null,
+            formData: formData || {},
         });
     }
 
@@ -192,7 +242,7 @@ class EventController implements IEventController {
         const eventId = Number(req.params.id);
         if (Number.isNaN(eventId)) {
             res.status(400).render("partials/error", {
-                message: "Invalid event id",
+                message: InvalidInput("Invalid event id").message,
                 layout: false,
             });
             return;
@@ -200,15 +250,18 @@ class EventController implements IEventController {
 
         const result = await this.eventService.getEventById(eventId);
         if (!result.ok) {
-            res.status(404).render("partials/error", {
-                message: result.value,
+            const error = result.value as EventError;
+            let statusCode = 400;
+            if (error.name === 'EventNotFound') statusCode = 404;
+            res.status(statusCode).render("partials/error", {
+                message: error.message,
                 layout: false,
             });
             return;
         }
         if (session.authenticatedUser?.userId !== result.value.organizerId && session.authenticatedUser?.role !== "admin") {
             res.status(403).render("partials/error", {
-                message: "You do not have permission to edit this event",
+                message: Unauthorized("You do not have permission to edit this event").message,
                 layout: false,
             });
             return;
@@ -225,7 +278,7 @@ class EventController implements IEventController {
         const eventId = Number(req.params.id);
         if (Number.isNaN(eventId)) {
             res.status(400).render("partials/error", {
-                message: "Invalid event id",
+                message: InvalidInput("Invalid event id").message,
                 layout: false,
             });
             return;
@@ -256,8 +309,11 @@ class EventController implements IEventController {
         );
 
         if (!result.ok) {
-            res.status(400).render("partials/error", {
-                message: result.value,
+            const error = result.value as EventError;
+            let statusCode = 400;
+            if (error.name === 'EventNotFound') statusCode = 404;
+            res.status(statusCode).render("partials/error", {
+                message: error.message,
                 layout: false,
             });
             return;
