@@ -9,6 +9,10 @@
       placeholder="Search events..."
       class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
     />
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Search</button>
+  </form>
+
+  <form method="GET" action="/events" class="flex gap-3 mb-6">
     <select name="category" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
       <option value="">All Categories</option>
       <option value="music" <%= category === 'music' ? 'selected' : '' %>>Music</option>
@@ -27,7 +31,8 @@
       <option value="this_week" <%= timeframe === 'this_week' ? 'selected' : '' %>>This Week</option>
       <option value="this_weekend" <%= timeframe === 'this_weekend' ? 'selected' : '' %>>This Weekend</option>
     </select>
-    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Search</button>
+
+    <button type="submit" class="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm hover:bg-slate-800">Filter</button>
   </form>
 
   <% if (events.length === 0) { %>
