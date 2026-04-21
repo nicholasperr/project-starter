@@ -344,6 +344,7 @@ class ExpressApp implements IApp {
         }
 
         await this.eventController.toggleRSVPFromForm(
+          req,
           res,
           eventId,
           currentUser.userId,
@@ -401,33 +402,6 @@ class ExpressApp implements IApp {
       }),
     );
 
-
-    this.app.post(
-      "/events/:id/rsvp",
-      asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
-          return;
-        }
-
-        const eventId = Number(req.params.id);
-        const currentUser = getAuthenticatedUser(sessionStore(req));
-
-        if (Number.isNaN(eventId) || !currentUser) {
-          res.status(400).render("partials/error", {
-            message: "Invalid RSVP request.",
-            layout: false,
-          });
-          return;
-        }
-
-        await this.eventController.toggleRSVPFromForm(
-          res,
-          eventId,
-          currentUser.userId,
-          touchAppSession(sessionStore(req)),
-        );
-      }),
-    );
 
     // ── Error handler ────────────────────────────────────────────────
 

@@ -12,6 +12,7 @@ export interface IEventController {
     showEventEditForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
     editEvent(req: Request, res: Response):  Promise<void>;
     toggleRSVPFromForm(
+        req: Request,
         res: Response,
         eventId: number,
         userId: string,
@@ -67,10 +68,18 @@ class EventController implements IEventController {
             return;
         }
 
+        const rsvpsResult = await this.eventService.getRSVPsForEvent(eventId);
+        const currentRsvp =
+            rsvpsResult.ok
+                ? rsvpsResult.value.find((rsvp) => rsvp.userId === user.userId) ?? null
+                : null;
+
         res.render("event/show", {
             session,
             pageError: null,
             event: result.value,
+            currentRsvp,
+            errorMessage: null,
         });
     }
 
@@ -289,36 +298,54 @@ class EventController implements IEventController {
     }
     
     async toggleRSVPFromForm(
+        req: Request,
         res: Response,
         eventId: number,
         userId: string,
         session: IAppBrowserSession,
     ): Promise<void> {
+        const eventResult = await this.eventService.getEventById(eventId);
 
-        // call service to handle RSVP logic
-        const result = await this.eventService.toggleRSVP(eventId, userId);
-
-        if (result.ok === false) {
-            // log error if something failed
-            this.logger.warn(`RSVP toggle failed: ${result.value}`);
-
-            // return small error partial for HTMX later
-            res.status(400).render("partials/error", {
-                message: result.value,
+        if (!eventResult.ok) {
+            res.status(404).render("partials/error", {
+                message: eventResult.value,
                 layout: false,
             });
             return;
         }
 
-        // log success
-        this.logger.info(`RSVP toggled: user ${userId}, event ${eventId}, status ${result.value}`);
+        const toggleResult = await this.eventService.toggleRSVP(eventId, userId);
 
-        // reload home page 
-        res.render("home", {
+        const rsvpsResult = await this.eventService.getRSVPsForEvent(eventId);
+        const currentRsvp =
+            rsvpsResult.ok
+                ? rsvpsResult.value.find((rsvp) => rsvp.userId === userId) ?? null
+                : null;
+
+        if (toggleResult.ok === false) {
+            this.logger.warn(`RSVP toggle failed: ${toggleResult.value}`);
+
+            res.status(200).render("partials/rsvp-action", {
+                layout: false,
+                event: eventResult.value,
+                session,
+                currentRsvp,
+                errorMessage: toggleResult.value.message,
+            });
+            return;
+        }
+
+        this.logger.info(`RSVP toggled for user ${userId} on event ${eventId}`);
+
+        res.render("partials/rsvp-action", {
+            layout: false,
+            event: eventResult.value,
             session,
-            pageError: null,
+            currentRsvp,
+            errorMessage: null,
         });
     }
+
 
     async showRSVPDashboard(res: Response, session: IAppBrowserSession) {
         const user = session.authenticatedUser;

@@ -17,8 +17,6 @@ import { CreateEventService } from "./service/EventService";
 export function createComposedApp(logger?: ILoggingService): IApp {
   const resolvedLogger = logger ?? CreateLoggingService();
 
-  // Authentication & authorization wiring
-  // Auth wiring
   const authUsers = CreateInMemoryUserRepository();
   const passwordHasher = CreatePasswordHasher();
   const authService = CreateAuthService(authUsers, passwordHasher);
@@ -29,11 +27,9 @@ export function createComposedApp(logger?: ILoggingService): IApp {
     resolvedLogger,
   );
 
-  // Shared repositories
   const eventRepository = CreateEventRepository();
   const rsvpRepository = CreateRSVPRepository();
 
-  // Event detail / lifecycle
   const eventService = CreateEventService(eventRepository, rsvpRepository);
   const eventController = CreateEventController(
     eventService,
