@@ -7,13 +7,11 @@ import { CreateApp } from "./app";
 import type { IApp } from "./contracts";
 
 import { CreateEventController } from "./controller/EventController";
-import { CreateEventFilterController } from "./controller/EventFilterController";
-import { CreateEventSearchController } from "./controller/EventSearchController";
 
 import { CreateEventRepository } from "./repository/EventRepository";
 import { CreateRSVPRepository } from "./repository/RSVPRepository";
 
-import { CreateLoggingService } from "./service/LoggingService";
+import { CreateLoggingService, ILoggingService } from "./service/LoggingService";
 import { CreateEventService } from "./service/EventService";
 
 export function createComposedApp(logger?: ILoggingService): IApp {
@@ -43,5 +41,5 @@ export function createComposedApp(logger?: ILoggingService): IApp {
   );
 
 
-  return CreateApp(authController, eventController, logger);
+  return CreateApp(authController, eventController, resolvedLogger);
 }

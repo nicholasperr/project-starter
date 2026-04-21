@@ -4,24 +4,24 @@ import type { IEventService } from "../service/EventService";
 import type { IAppBrowserSession } from "../session/AppSession";
 import { Category } from "../model/event";
 import { EventTimeFrame } from "../service/EventService";
+import { time } from "node:console";
 
 export interface IEventController {
-    createEvent(req: Request, res: Response): void;
-    showEventCreateForm(res: Response, session: IAppBrowserSession): void;
-    showEventEditForm(req: Request, res: Response, session: IAppBrowserSession): void;
-    editEvent(req: Request, res: Response): void;
+    createEvent(req: Request, res: Response): Promise<void>;
+    showEventCreateForm(res: Response, session: IAppBrowserSession):  Promise<void>;
+    showEventEditForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
+    editEvent(req: Request, res: Response):  Promise<void>;
     toggleRSVPFromForm(
         res: Response,
         eventId: number,
         userId: string,
         session: IAppBrowserSession,
     ): Promise<void>;
-    showEventDetail(req: Request, res: Response, session: IAppBrowserSession): void;
-    publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void;
-    cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void;
-    showRSVPDashboard(res: Response, session: IAppBrowserSession): void;
-    searchEvents(req: Request, res: Response): void;
-    getFilteredEvents(req: Request, res: Response): void;
+    showEventDetail(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
+    publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
+    cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
+    showRSVPDashboard(res: Response, session: IAppBrowserSession):  Promise<void>;
+    searchEvents(req: Request, res: Response): Promise<void>;
 }
 
 class EventController implements IEventController {
@@ -29,8 +29,11 @@ class EventController implements IEventController {
         private readonly eventService: IEventService,
         private readonly logger: ILoggingService,
     ) {}
-        showEventDetail(req: Request, res: Response, session: IAppBrowserSession): void {
+
+    async showEventDetail(req: Request, res: Response, session: IAppBrowserSession){
+        this.logger.info(`Showing event detail for event ID: ${req.params.id}`);
         const eventId = Number(req.params.id);
+        console.log("Event ID from params:", req.params.id, "Parsed event ID:", eventId);
 
         if (Number.isNaN(eventId)) {
             res.status(400).render("partials/error", {
@@ -50,7 +53,7 @@ class EventController implements IEventController {
             return;
         }
 
-        const result = this.eventService.getVisibleEventById(
+        const result = await this.eventService.getVisibleEventById(
             eventId,
             user.userId,
             user.role,
@@ -71,7 +74,7 @@ class EventController implements IEventController {
         });
     }
 
-    publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void {
+    async publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession) {
         const eventId = Number(req.params.id);
 
         if (Number.isNaN(eventId)) {
@@ -92,7 +95,7 @@ class EventController implements IEventController {
             return;
         }
 
-        const result = this.eventService.publishEvent(eventId, user.userId, user.role);
+        const result = await this.eventService.publishEvent(eventId, user.userId, user.role);
 
         if (!result.ok) {
             res.status(400).render("partials/error", {
@@ -105,7 +108,7 @@ class EventController implements IEventController {
         res.redirect(`/events/${eventId}`);
     }
 
-    cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession): void {
+    async cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession) {
         const eventId = Number(req.params.id);
 
         if (Number.isNaN(eventId)) {
@@ -126,7 +129,7 @@ class EventController implements IEventController {
             return;
         }
 
-        const result = this.eventService.cancelEvent(eventId, user.userId, user.role);
+        const result = await this.eventService.cancelEvent(eventId, user.userId, user.role);
 
         if (!result.ok) {
             res.status(400).render("partials/error", {
@@ -139,7 +142,7 @@ class EventController implements IEventController {
         res.redirect(`/events/${eventId}`);
     }
     
-    createEvent(req: Request, res: Response) {
+    async createEvent(req: Request, res: Response) {
         const {
             title,
             description,
@@ -155,7 +158,7 @@ class EventController implements IEventController {
         const parsedCapacity = capacity !== undefined && capacity !== "" ? Number(capacity) : null;
         const parsedOrganizerId = organizerId;
 
-        const result = this.eventService.createEvent(
+        const result = await this.eventService.createEvent(
             title,
             description,
             location,
@@ -178,14 +181,14 @@ class EventController implements IEventController {
         res.redirect("/events");
     }
 
-    showEventCreateForm(res: Response, session: IAppBrowserSession) {
+    async showEventCreateForm(res: Response, session: IAppBrowserSession) {
         res.render("event/create", {
             pageTitle: "Create Event",
             session: session,
         });
     }
 
-    showEventEditForm(req: Request, res: Response, session: IAppBrowserSession) {
+    async showEventEditForm(req: Request, res: Response, session: IAppBrowserSession) {
         const eventId = Number(req.params.id);
         if (Number.isNaN(eventId)) {
             res.status(400).render("partials/error", {
@@ -195,7 +198,7 @@ class EventController implements IEventController {
             return;
         }
 
-        const result = this.eventService.getEventById(eventId);
+        const result = await this.eventService.getEventById(eventId);
         if (!result.ok) {
             res.status(404).render("partials/error", {
                 message: result.value,
@@ -203,7 +206,7 @@ class EventController implements IEventController {
             });
             return;
         }
-        if (session.authenticatedUser?.userId !== result.value.organizerId) {
+        if (session.authenticatedUser?.userId !== result.value.organizerId && session.authenticatedUser?.role !== "admin") {
             res.status(403).render("partials/error", {
                 message: "You do not have permission to edit this event",
                 layout: false,
@@ -218,7 +221,7 @@ class EventController implements IEventController {
         });
     }
 
-    editEvent(req: Request, res: Response) {
+    async editEvent(req: Request, res: Response) {
         const eventId = Number(req.params.id);
         if (Number.isNaN(eventId)) {
             res.status(400).render("partials/error", {
@@ -240,7 +243,7 @@ class EventController implements IEventController {
         } = req.body;
 
         const parsedCapacity = capacity !== undefined && capacity !== "" ? Number(capacity) : null;
-        const result = this.eventService.updateEvent(
+        const result = await this.eventService.updateEvent(
             eventId,
             title,
             description,
@@ -263,48 +266,27 @@ class EventController implements IEventController {
         res.redirect(`/events/${eventId}`);
     }
 
-    searchEvents(req: Request, res: Response): void {
+    async searchEvents(req: Request, res: Response){
         
         const query = (req.query.query as string ?? "")
-
-        const result = this.eventService.searchEvents(query);
-        if (result.ok === false) {
-            res.status(400).json({ error: result.value.message});
-            return;
-        }
-
-        res.render("events/index", {
-            events: result.value,
-            category: null,
-            timeframe: null,
-            query: query,
-            session: (req as any).session,
-            pageError: null
-        });
-    }
-
-    getFilteredEvents(req: Request, res: Response): void {
-
         const category = req.query.category as Category | undefined;
         const timeframe = req.query.timeframe as EventTimeFrame | undefined;
 
-        const result = this.eventService.getFilteredEvents(category, timeframe)
+        const result = await this.eventService.searchEvents(query, category, timeframe);
         if (result.ok === false) {
-            res.status(400).json({ error: result.value.message });
+            res.status(400).json({ error: result.value});
             return;
         }
-        
+
         res.render("events/index", {
             events: result.value,
-            category: category ?? null,
-            timeframe: timeframe ?? null, 
-            query: null,
+            query: query,
+            category: category,
+            timeframe: timeframe,
             session: (req as any).session,
             pageError: null
         });
-        
     }
-
     
     async toggleRSVPFromForm(
         res: Response,
@@ -314,7 +296,7 @@ class EventController implements IEventController {
     ): Promise<void> {
 
         // call service to handle RSVP logic
-        const result = this.eventService.toggleRSVP(eventId, userId);
+        const result = await this.eventService.toggleRSVP(eventId, userId);
 
         if (result.ok === false) {
             // log error if something failed
@@ -338,7 +320,7 @@ class EventController implements IEventController {
         });
     }
 
-    showRSVPDashboard(res: Response, session: IAppBrowserSession): void {
+    async showRSVPDashboard(res: Response, session: IAppBrowserSession) {
         const user = session.authenticatedUser;
 
         if (!user) {
@@ -357,7 +339,7 @@ class EventController implements IEventController {
             return;
         }
 
-        const result = this.eventService.getUserDashboard(user.userId);
+        const result = await this.eventService.getUserDashboard(user.userId);
 
         if (!result.ok) {
             res.status(400).render("partials/error", {

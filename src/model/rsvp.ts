@@ -1,4 +1,4 @@
-export type RSVPStatus = 'pending' | 'going' | 'waitlisted' | 'cancelled';
+export type RSVPStatus = 'going' | 'waitlisted' | 'cancelled';
 
 export interface IRSVP {
     id: number;
