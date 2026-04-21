@@ -14,7 +14,7 @@ export interface IEventService {
     updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date): Promise<Result<undefined,string>>;
     deleteEvent(eventId: number): Promise<Result<undefined,string>>;
     createRSVP(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined,string>>;
-    toggleRSVP(eventId: number, userId: string): Promise<Result<undefined, { name: string; message: string }>>  
+    toggleRSVP(eventId: number, userId: string): Promise<Result<undefined, EventError>>;  
     getRSVPsForEvent(eventId: number): Promise<Result<IRSVP[],string>>;
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined,string>>;
     deleteRSVP(eventId: number): Promise<Result<undefined,string>>;
@@ -112,7 +112,7 @@ class EventService implements IEventService {
         return await this.eventRepository.findFiltered(query, category, timeframe);
    }
 
-    async toggleRSVP(eventId: number, userId: string): Promise<Result<undefined, { name: string; message: string }>> {
+    async toggleRSVP(eventId: number, userId: string): Promise<Result<undefined, EventError>> {
         const eventResult = await this.eventRepository.findById(eventId);
         if (eventResult.ok === false) {
             return Err({
