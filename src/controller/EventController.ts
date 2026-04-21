@@ -343,11 +343,11 @@ class EventController implements IEventController {
         this.logger.info(`RSVP toggled for user ${userId} on event ${eventId}`);
 
         if (isDashboardRequest) {
-            const dashboardResult = await this.eventService.getUserDashboard(userId);
+            const dashboardResult = await this.eventService.getUserDashboard(userId, session.authenticatedUser!.role);
 
             if (!dashboardResult.ok) {
-                res.status(400).render("partials/error", {
-                    message: dashboardResult.value,
+                res.status(200).render("partials/error", {
+                    message: dashboardResult.value.message,
                     layout: false,
                 });
                 return;
@@ -383,19 +383,13 @@ class EventController implements IEventController {
             return;
         }
 
-        if (user.role !== "user") {
-            res.status(403).render("partials/error", {
-                message: "Dashboard only available to members",
-                layout: false,
-            });
-            return;
-        }
-
-        const result = await this.eventService.getUserDashboard(user.userId);
+        const result = await this.eventService.getUserDashboard(user.userId, user.role);
 
         if (!result.ok) {
-            res.status(400).render("partials/error", {
-                message: result.value,
+            const status = result.value.name === "DashboardAccessError" ? 403 : 400;
+
+            res.status(status).render("partials/error", {
+                message: result.value.message,
                 layout: false,
             });
             return;

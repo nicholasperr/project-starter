@@ -89,8 +89,8 @@ describe("EventService My RSVPs Dashboard", () => {
     await service.createRSVP(oldPastId, "dashboard-user", "going");
     await service.createRSVP(cancelledFutureId, "dashboard-user", "going");
 
-    const result = await service.getUserDashboard("dashboard-user");
-
+    const result = await service.getUserDashboard("dashboard-user", "user");
+    
     expect(result.ok).toBe(true);
 
     if (result.ok) {
@@ -118,7 +118,7 @@ describe("EventService My RSVPs Dashboard", () => {
     const eventId = await findEventIdByTitle(eventRepo, "Future Cancelled RSVP");
     await service.createRSVP(eventId, "dashboard-user", "cancelled");
 
-    const result = await service.getUserDashboard("dashboard-user");
+    const result = await service.getUserDashboard("dashboard-user", "user");
 
     expect(result.ok).toBe(true);
 
@@ -130,4 +130,16 @@ describe("EventService My RSVPs Dashboard", () => {
       expect(pastTitles).toContain("Future Cancelled RSVP");
     }
   });
+
+    it("returns DashboardAccessError when a non-user role requests the dashboard", async () => {
+        const result = await service.getUserDashboard("user-staff", "staff");
+
+        expect(result.ok).toBe(false);
+
+        if (!result.ok) {
+        expect(result.value.name).toBe("DashboardAccessError");
+        expect(result.value.message).toBe("Dashboard only available to members");
+        }
+    });
+
 });
