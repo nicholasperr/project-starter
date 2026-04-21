@@ -3,6 +3,11 @@ import { IRSVP, RSVPStatus } from "../model/rsvp";
 import { IEventRepository } from "../repository/EventRepository";
 import { IRSVPRepository } from "../repository/RSVPRepository";
 import { Ok, Err, type Result } from "../lib/result";
+import {
+  EventError,
+  EventNotFoundError,
+  UnauthorizedError,
+} from "../event/errors";
 
 export type EventTimeFrame = "all_upcoming" | "this_week" | "this_weekend"
 
@@ -18,8 +23,7 @@ export interface IEventService {
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined,string>>;
     deleteRSVP(eventId: number): Promise<Result<undefined,string>>;
     getUserDashboard(userId: string): Promise<Result<{ upcoming: {rsvp: IRSVP, event: IEvent}[]; past: {rsvp: IRSVP, event: IEvent}[] }, string>>;
-    getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, string>>;
-    publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, string>>;
+    getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, EventError>>;    publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, string>>;
     cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, string>>;
     searchEvents(query: string, category?: Category, timeframe?: EventTimeFrame): Promise<Result<IEvent[], string>>;
 }
@@ -64,22 +68,27 @@ class EventService implements IEventService {
     async deleteRSVP(eventId: number) {
         return await this.rsvpRepository.delete(eventId);
     }
-    async getVisibleEventById(eventId: number, userId: string, role: string) {
-        const event = await this.eventRepository.findById(eventId);
+    
+    async getVisibleEventById(
+    eventId: number,
+    userId: string,
+    role: string
+    ): Promise<Result<IEvent, EventError>> {
+    const event = await this.eventRepository.findById(eventId);
 
-        if (!event.ok) {
-            return event;
-        }
-        const canViewDraft = role === "admin" || event.value.organizerId === userId;
-
-        if (!canViewDraft && event.value.status === 'draft') {
-            return Err("No Permission to view this event");
-        }
-
-        return event;
+    if (!event.ok) {
+        return Err(EventNotFoundError("Event not found"));
     }
 
+    const canViewDraft =
+        role === "admin" || event.value.organizerId === userId;
 
+    if (event.value.status === "draft" && !canViewDraft) {
+        return Err(UnauthorizedError("Event not found"));
+    }
+
+    return Ok(event.value);
+}
     
     async publishEvent(eventId: number, userId: string, role: string) {
         const event = await this.eventRepository.findById(eventId);

@@ -5,6 +5,7 @@ import type { IAppBrowserSession } from "../session/AppSession";
 import { Category } from "../model/event";
 import { EventTimeFrame } from "../service/EventService";
 import { time } from "node:console";
+import { EventError } from "../event/errors";
 
 export interface IEventController {
     createEvent(req: Request, res: Response): Promise<void>;
@@ -60,13 +61,17 @@ class EventController implements IEventController {
         );
 
         if (!result.ok) {
-            res.status(404).render("partials/error", {
-                message: result.value,
+            const error = result.value;
+
+            const status =
+                error.name === "EventNotFoundError" ? 404 : 403;
+
+            res.status(status).render("partials/error", {
+                message: error.message,
                 layout: false,
             });
             return;
-        }
-
+}
         res.render("event/show", {
             session,
             pageError: null,
