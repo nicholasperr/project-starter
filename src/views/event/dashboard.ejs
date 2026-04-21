@@ -12,23 +12,37 @@
   <% upcoming.forEach(item => { %>
     <div class="mb-3">
       <strong><%= item.event.title %></strong>
-      <p>Status: <%= item.rsvp.status %></p>
+      <p>
+        Status:
+        <% if (item.event.status === "cancelled") { %>
+          event cancelled
+        <% } else { %>
+          <%= item.rsvp.status %>
+        <% } %>
+      </p>
       <p>Start: <%= item.event.startDatetime.toLocaleString() %></p>
     </div>
   <% }) %>
 </section>
 
 <section class="p-6 border rounded-2xl bg-white shadow">
-  <h2 class="text-xl font-semibold mb-3">Past Events</h2>
+  <h2 class="text-xl font-semibold mb-3">Past & Cancelled Events</h2>
 
   <% if (past.length === 0) { %>
-    <p>No past RSVPs</p>
+    <p>No past or cancelled RSVPs</p>
   <% } %>
 
   <% past.forEach(item => { %>
     <div class="mb-3">
       <strong><%= item.event.title %></strong>
-      <p>Status: <%= item.rsvp.status %></p>
+      <p>
+        Status:
+        <% if (item.event.status === "cancelled") { %>
+          event cancelled
+        <% } else { %>
+          <%= item.rsvp.status %>
+        <% } %>
+      </p>
       <p>Start: <%= item.event.startDatetime.toLocaleString() %></p>
     </div>
   <% }) %>

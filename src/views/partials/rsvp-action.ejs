@@ -9,34 +9,40 @@
   <% } %>
 
   <% if (user && user.role === "user") { %>
-    <form
-      method="POST"
-      action="/events/<%= event.id %>/rsvp"
-      hx-post="/events/<%= event.id %>/rsvp"
-      hx-target="#rsvp-action"
-      hx-swap="outerHTML"
-      class="mb-3"
-    >
-      <button
-        type="submit"
-        class="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium cursor-pointer hover:bg-blue-700"
+    <% if (event.status === "cancelled") { %>
+      <p class="text-sm text-red-700">This event was cancelled, so your RSVP was removed.</p>
+    <% } else if (event.status === "past") { %>
+      <p class="text-sm text-slate-500">This event has already ended.</p>
+    <% } else { %>
+      <form
+        method="POST"
+        action="/events/<%= event.id %>/rsvp"
+        hx-post="/events/<%= event.id %>/rsvp"
+        hx-target="#rsvp-action"
+        hx-swap="outerHTML"
+        class="mb-3"
       >
-        <% if (status === "going") { %>
-          Cancel RSVP
-        <% } else if (status === "waitlisted") { %>
-          Leave Waitlist
-        <% } else { %>
-          RSVP
-        <% } %>
-      </button>
-    </form>
+        <button
+          type="submit"
+          class="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium cursor-pointer hover:bg-blue-700"
+        >
+          <% if (status === "going") { %>
+            Cancel RSVP
+          <% } else if (status === "waitlisted") { %>
+            Leave Waitlist
+          <% } else { %>
+            RSVP
+          <% } %>
+        </button>
+      </form>
 
-    <% if (status === "going") { %>
-      <p class="text-sm text-green-700">You are going to this event.</p>
-    <% } else if (status === "waitlisted") { %>
-      <p class="text-sm text-amber-700">You are currently waitlisted.</p>
-    <% } else if (status === "cancelled") { %>
-      <p class="text-sm text-slate-500">Your RSVP is currently cancelled.</p>
+      <% if (status === "going") { %>
+        <p class="text-sm text-green-700">You are going to this event.</p>
+      <% } else if (status === "waitlisted") { %>
+        <p class="text-sm text-amber-700">You are currently waitlisted.</p>
+      <% } else if (status === "cancelled") { %>
+        <p class="text-sm text-slate-500">Your RSVP is currently cancelled.</p>
+      <% } %>
     <% } %>
   <% } else { %>
     <p class="text-slate-500">No RSVP actions available for your role.</p>
