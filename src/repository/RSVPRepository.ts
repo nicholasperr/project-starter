@@ -3,10 +3,10 @@ import { IRSVP, RSVP, RSVPStatus } from "../model/rsvp";
 import { EventError, EventNotFoundError } from "../service/errors";
 
 export interface IRSVPRepository {
-    create(eventId: number, userId: string, status: string): Promise<Result<undefined, EventError>>;
+    create(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined, EventError>>;
     findByIds(userid: string, eventId: number): Promise<Result<IRSVP,EventError>>;
     findByEventId(eventId: number): Promise<Result<IRSVP[],EventError>>;
-    update(id: number, status: string): Promise<Result<undefined,EventError>>;
+    update(id: number, status: RSVPStatus): Promise<Result<undefined,EventError>>;
     delete(id: number): Promise<Result<undefined,EventError>>;
     findAll(): Promise<Result<IRSVP[],EventError>>;
 }
@@ -15,7 +15,7 @@ class RSVPRepository implements IRSVPRepository {
     private rsvps: IRSVP[] = []
     private nextId: number = 1;
 
-    create(eventId: number, userId: string, status?: string) {
+    create(eventId: number, userId: string, status?: RSVPStatus) {
         const rsvp = new RSVP(this.nextId++, eventId, userId, status as RSVPStatus | undefined);
         this.rsvps.push(rsvp);
         return Promise.resolve(Ok(undefined));
