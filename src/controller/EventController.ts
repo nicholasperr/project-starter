@@ -180,7 +180,7 @@ class EventController implements IEventController {
 
         const errors = this.validateEventForm(formValues);
         if (Object.keys(errors).length > 0) {
-            res.status(400).render("event/crepate", {
+            res.status(400).render("event/create", {
                 pageTitle: "Create Event",
                 session,
                 formValues,
