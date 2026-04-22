@@ -1,0 +1,74 @@
+<div id="dashboard-rsvp-<%= item.event.id %>" class="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+  <strong><%= item.event.title %></strong>
+
+  <p>
+    Status:
+    <% if (item.event.status === "cancelled") { %>
+      event cancelled
+    <% } else if (item.rsvp.status === "cancelled") { %>
+      RSVP cancelled
+    <% } else { %>
+      <%= item.rsvp.status %>
+    <% } %>
+  </p>
+
+  <p>Start: <%= item.event.startDatetime.toLocaleString() %></p>
+
+  <% const canCancelFromDashboard =
+    session.authenticatedUser &&
+    session.authenticatedUser.role === "user" &&
+    item.event.status !== "cancelled" &&
+    item.event.status !== "past" &&
+    item.rsvp.status !== "cancelled";
+  %>
+
+  <% const canReRsvpFromDashboard =
+    session.authenticatedUser &&
+    session.authenticatedUser.role === "user" &&
+    item.event.status !== "cancelled" &&
+    item.event.status !== "past" &&
+    item.rsvp.status === "cancelled";
+  %>
+
+  <% if (canCancelFromDashboard) { %>
+    <form
+      method="POST"
+      action="/events/<%= item.event.id %>/rsvp"
+      hx-post="/events/<%= item.event.id %>/rsvp"
+      hx-target="#dashboard-content"
+      hx-swap="outerHTML"
+      class="mt-3"
+    >
+      <input type="hidden" name="context" value="dashboard" />
+      <button
+        type="submit"
+        class="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium cursor-pointer hover:bg-blue-700"
+      >
+        <% if (item.rsvp.status === "waitlisted") { %>
+          Leave Waitlist
+        <% } else { %>
+          Cancel RSVP
+        <% } %>
+      </button>
+    </form>
+  <% } else if (canReRsvpFromDashboard) { %>
+    <form
+      method="POST"
+      action="/events/<%= item.event.id %>/rsvp"
+      hx-post="/events/<%= item.event.id %>/rsvp"
+      hx-target="#dashboard-content"
+      hx-swap="outerHTML"
+      class="mt-3"
+    >
+      <input type="hidden" name="context" value="dashboard" />
+      <button
+        type="submit"
+        class="px-4 py-2 rounded-lg bg-green-600 text-white font-medium cursor-pointer hover:bg-green-700"
+      >
+        RSVP Again
+      </button>
+    </form>
+  <% } else if (item.event.status === "cancelled") { %>
+    <p class="mt-2 text-sm text-red-700">This event was cancelled.</p>
+  <% } %>
+</div>

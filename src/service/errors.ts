@@ -4,7 +4,9 @@ export type EventError =
   | { name: "EventFullError"; message: string }
   | { name: "EventClosedError"; message: string }
   | { name: "UnauthorizedRsvpError"; message: string }
-  | { name: "EventNotFoundError"; message: string };
+  | { name: "EventNotFoundError"; message: string }
+  | { name: "DashboardAccessError"; message: string }
+  | { name: "DashboardDataError"; message: string };
 
 export const InvalidFilterError = (message: string): EventError => ({
   name: "InvalidFilterError",
@@ -33,5 +35,15 @@ export const UnauthorizedRsvpError = (message: string): EventError => ({
 
 export const EventNotFoundError = (message: string): EventError => ({
   name: "EventNotFoundError",
+  message,
+});
+
+export const DashboardAccessError = (message: string): EventError => ({
+  name: "DashboardAccessError",
+  message,
+});
+
+export const DashboardDataError = (message: string): EventError => ({
+  name: "DashboardDataError",
   message,
 });

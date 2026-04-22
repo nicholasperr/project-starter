@@ -322,6 +322,11 @@ class EventController implements IEventController {
                 ? rsvpsResult.value.find((rsvp) => rsvp.userId === userId) ?? null
                 : null;
 
+        const isDashboardRequest =
+            req.body &&
+            typeof req.body.context === "string" &&
+            req.body.context === "dashboard";
+
         if (toggleResult.ok === false) {
             this.logger.warn(`RSVP toggle failed: ${toggleResult.value}`);
 
@@ -336,6 +341,26 @@ class EventController implements IEventController {
         }
 
         this.logger.info(`RSVP toggled for user ${userId} on event ${eventId}`);
+
+        if (isDashboardRequest) {
+            const dashboardResult = await this.eventService.getUserDashboard(userId, session.authenticatedUser!.role);
+
+            if (!dashboardResult.ok) {
+                res.status(200).render("partials/error", {
+                    message: dashboardResult.value.message,
+                    layout: false,
+                });
+                return;
+            }
+
+            res.render("partials/dashboard-sections", {
+                layout: false,
+                upcoming: dashboardResult.value.upcoming,
+                past: dashboardResult.value.past,
+                session,
+            });
+            return;
+        }
 
         res.render("partials/rsvp-action", {
             layout: false,
@@ -358,19 +383,13 @@ class EventController implements IEventController {
             return;
         }
 
-        if (user.role !== "user") {
-            res.status(403).render("partials/error", {
-                message: "Dashboard only available to members",
-                layout: false,
-            });
-            return;
-        }
-
-        const result = await this.eventService.getUserDashboard(user.userId);
+        const result = await this.eventService.getUserDashboard(user.userId, user.role);
 
         if (!result.ok) {
-            res.status(400).render("partials/error", {
-                message: result.value,
+            const status = result.value.name === "DashboardAccessError" ? 403 : 400;
+
+            res.status(status).render("partials/error", {
+                message: result.value.message,
                 layout: false,
             });
             return;
