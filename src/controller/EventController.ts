@@ -4,6 +4,7 @@ import type { IEventService } from "../service/EventService";
 import type { IAppBrowserSession } from "../session/AppSession";
 import { Category } from "../model/event";
 import { EventTimeFrame } from "../service/EventService";
+import { EventError } from "../service/errors";
 import { time } from "node:console";
 
 export interface IEventController {
@@ -152,6 +153,7 @@ class EventController implements IEventController {
     }
     
     async createEvent(req: Request, res: Response) {
+        const session = (req as any).session as IAppBrowserSession | undefined;
         const {
             title,
             description,
@@ -163,6 +165,30 @@ class EventController implements IEventController {
             endDatetime,
             organizerId,
         } = req.body;
+
+        const formValues = {
+            title,
+            description,
+            location,
+            category,
+            status,
+            capacity,
+            startDatetime,
+            endDatetime,
+            organizerId,
+        };
+
+        const errors = this.validateEventForm(formValues);
+        if (Object.keys(errors).length > 0) {
+            res.status(400).render("event/crepate", {
+                pageTitle: "Create Event",
+                session,
+                formValues,
+                errors,
+                pageError: null,
+            });
+            return;
+        }
 
         const parsedCapacity = capacity !== undefined && capacity !== "" ? Number(capacity) : null;
         const parsedOrganizerId = organizerId;
@@ -194,6 +220,9 @@ class EventController implements IEventController {
         res.render("event/create", {
             pageTitle: "Create Event",
             session: session,
+            formValues: {},
+            errors: {},
+            pageError: null,
         });
     }
 
@@ -227,7 +256,62 @@ class EventController implements IEventController {
             pageTitle: "Edit Event",
             event: result.value,
             session: session,
+            formValues: {},
+            errors: {},
         });
+    }
+
+    private validateEventForm(values: Record<string, any>) {
+        const errors: Record<string, string> = {};
+
+        if (!values.title?.trim()) {
+            errors.title = "Title is required.";
+        }
+
+        if (!values.description?.trim()) {
+            errors.description = "Description is required.";
+        }
+
+        if (!values.location?.trim()) {
+            errors.location = "Location is required.";
+        }
+
+        if (!values.category?.trim()) {
+            errors.category = "Category is required.";
+        }
+
+        if (!values.status?.trim()) {
+            errors.status = "Status is required.";
+        }
+
+        if (values.capacity !== undefined && values.capacity !== "") {
+            const parsed = Number(values.capacity);
+            if (Number.isNaN(parsed) || !Number.isInteger(parsed) || parsed < 0) {
+                errors.capacity = "Capacity must be a non-negative whole number.";
+            }
+        }
+
+        if (!values.startDatetime?.trim()) {
+            errors.startDatetime = "Start date and time are required.";
+        } else if (Number.isNaN(new Date(values.startDatetime).getTime())) {
+            errors.startDatetime = "Start date and time are invalid.";
+        }
+
+        if (!values.endDatetime?.trim()) {
+            errors.endDatetime = "End date and time are required.";
+        } else if (Number.isNaN(new Date(values.endDatetime).getTime())) {
+            errors.endDatetime = "End date and time are invalid.";
+        }
+
+        if (!errors.startDatetime && !errors.endDatetime) {
+            const start = new Date(values.startDatetime);
+            const end = new Date(values.endDatetime);
+            if (start >= end) {
+                errors.endDatetime = "End time must be after start time.";
+            }
+        }
+
+        return errors;
     }
 
     async editEvent(req: Request, res: Response) {
@@ -250,6 +334,41 @@ class EventController implements IEventController {
             startDatetime,
             endDatetime,
         } = req.body;
+
+        const formValues = {
+            title,
+            description,
+            location,
+            category,
+            status,
+            capacity,
+            startDatetime,
+            endDatetime,
+        };
+
+        const errors = this.validateEventForm(formValues);
+        if (Object.keys(errors).length > 0) {
+            const existingResult = await this.eventService.getEventById(eventId);
+            if (!existingResult.ok) {
+                res.status(404).render("partials/error", {
+                    message: existingResult.value,
+                    layout: false,
+                });
+                return;
+            }
+
+            res.status(400).render("event/edit", {
+                pageTitle: "Edit Event",
+                event: {
+                    ...existingResult.value,
+                    ...formValues,
+                },
+                session: (req as any).session,
+                formValues,
+                errors,
+            });
+            return;
+        }
 
         const parsedCapacity = capacity !== undefined && capacity !== "" ? Number(capacity) : null;
         const result = await this.eventService.updateEvent(
@@ -347,7 +466,7 @@ class EventController implements IEventController {
 
             if (!dashboardResult.ok) {
                 res.status(200).render("partials/error", {
-                    message: dashboardResult.value.message,
+                    message: (dashboardResult.value as EventError).message,
                     layout: false,
                 });
                 return;
@@ -386,10 +505,10 @@ class EventController implements IEventController {
         const result = await this.eventService.getUserDashboard(user.userId, user.role);
 
         if (!result.ok) {
-            const status = result.value.name === "DashboardAccessError" ? 403 : 400;
+            const status = (result.value as EventError).name === "DashboardAccessError" ? 403 : 400;
 
             res.status(status).render("partials/error", {
-                message: result.value.message,
+                message: (result.value as EventError).message,
                 layout: false,
             });
             return;
