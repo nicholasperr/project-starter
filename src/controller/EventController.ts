@@ -63,7 +63,7 @@ class EventController implements IEventController {
 
         if (!result.ok) {
             res.status(404).render("partials/error", {
-                message: result.value,
+                message: result.value.message,
                 layout: false,
             });
             return;
@@ -109,7 +109,7 @@ class EventController implements IEventController {
 
         if (!result.ok) {
             res.status(400).render("partials/error", {
-                message: result.value,
+                message: result.value.message,
                 layout: false,
             });
             return;
@@ -143,7 +143,7 @@ class EventController implements IEventController {
 
         if (!result.ok) {
             res.status(400).render("partials/error", {
-                message: result.value,
+                message: result.value.message,
                 layout: false,
             });
             return;
@@ -207,7 +207,7 @@ class EventController implements IEventController {
 
         if (!result.ok) {
             res.status(400).render("partials/error", {
-                message: result.value,
+                message: result.value.message,
                 layout: false,
             });
             return;
@@ -239,7 +239,7 @@ class EventController implements IEventController {
         const result = await this.eventService.getEventById(eventId);
         if (!result.ok) {
             res.status(404).render("partials/error", {
-                message: result.value,
+                message: result.value.message,
                 layout: false,
             });
             return;
@@ -351,7 +351,7 @@ class EventController implements IEventController {
             const existingResult = await this.eventService.getEventById(eventId);
             if (!existingResult.ok) {
                 res.status(404).render("partials/error", {
-                    message: existingResult.value,
+                    message: existingResult.value.message,
                     layout: false,
                 });
                 return;
@@ -385,7 +385,7 @@ class EventController implements IEventController {
 
         if (!result.ok) {
             res.status(400).render("partials/error", {
-                message: result.value,
+                message: result.value.message,
                 layout: false,
             });
             return;
@@ -427,7 +427,7 @@ class EventController implements IEventController {
 
         if (!eventResult.ok) {
             res.status(404).render("partials/error", {
-                message: eventResult.value,
+                message: eventResult.value.message,
                 layout: false,
             });
             return;
