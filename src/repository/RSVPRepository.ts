@@ -1,13 +1,14 @@
 import { Err, Ok, Result } from "../lib/result";
 import { IRSVP, RSVP, RSVPStatus } from "../model/rsvp";
+import { EventError, EventNotFoundError } from "../service/errors";
 
 export interface IRSVPRepository {
-    create(eventId: number, userId: string, status: string): Promise<Result<undefined, string>>;
-    findByIds(userid: string, eventId: number): Promise<Result<IRSVP,string>>;
-    findByEventId(eventId: number): Promise<Result<IRSVP[],string>>;
-    update(id: number, status: string): Promise<Result<undefined,string>>;
-    delete(id: number): Promise<Result<undefined,string>>;
-    findAll(): Promise<Result<IRSVP[],string>>;
+    create(eventId: number, userId: string, status: string): Promise<Result<undefined, EventError>>;
+    findByIds(userid: string, eventId: number): Promise<Result<IRSVP,EventError>>;
+    findByEventId(eventId: number): Promise<Result<IRSVP[],EventError>>;
+    update(id: number, status: string): Promise<Result<undefined,EventError>>;
+    delete(id: number): Promise<Result<undefined,EventError>>;
+    findAll(): Promise<Result<IRSVP[],EventError>>;
 }
 
 class RSVPRepository implements IRSVPRepository {
@@ -22,7 +23,7 @@ class RSVPRepository implements IRSVPRepository {
     findByIds(userId: string, eventId: number) {
         const rsvp = this.rsvps.find(r => r.userId === userId && eventId === r.eventId) || null;
         if (rsvp === null) {
-            return Promise.resolve(Err('RSVP not found'));
+            return Promise.resolve(Err(EventNotFoundError('RSVP not found')));
         }
         return Promise.resolve(Ok(rsvp));
 
@@ -30,14 +31,14 @@ class RSVPRepository implements IRSVPRepository {
     findByEventId(eventId: number){
         const rsvps = this.rsvps.filter(r => r.eventId === eventId);
         if (rsvps.length === 0) {
-            return Promise.resolve(Err('No RSVPs found for this event'));
+            return Promise.resolve(Err(EventNotFoundError('No RSVPs found for this event')));
         }
         return Promise.resolve(Ok(rsvps));
     }
     update(id: number, status: RSVPStatus){
         const rsvp = this.rsvps.find(r => r.id === id);
         if (rsvp === undefined) {
-            return Promise.resolve(Err('RSVP not found'));
+            return Promise.resolve(Err(EventNotFoundError('RSVP not found')));
         }
         rsvp.updateEvent(status);
         return Promise.resolve(Ok(undefined));
