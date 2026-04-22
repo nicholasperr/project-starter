@@ -6,8 +6,10 @@ import { Ok, Err, type Result } from "../lib/result";
 import {
   EventError,
   EventNotFoundError,
+  InvalidTransitionError,
   UnauthorizedError,
 } from "../event/errors";
+
 
 export type EventTimeFrame = "all_upcoming" | "this_week" | "this_weekend"
 
@@ -23,9 +25,9 @@ export interface IEventService {
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined,string>>;
     deleteRSVP(eventId: number): Promise<Result<undefined,string>>;
     getUserDashboard(userId: string): Promise<Result<{ upcoming: {rsvp: IRSVP, event: IEvent}[]; past: {rsvp: IRSVP, event: IEvent}[] }, string>>;
-    getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, EventError>>;    publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, string>>;
-    cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, string>>;
-    searchEvents(query: string, category?: Category, timeframe?: EventTimeFrame): Promise<Result<IEvent[], string>>;
+    getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, EventError>>;    
+    publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>>;
+    cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>>;    searchEvents(query: string, category?: Category, timeframe?: EventTimeFrame): Promise<Result<IEvent[], string>>;
 }
 
 class EventService implements IEventService {
@@ -89,33 +91,68 @@ class EventService implements IEventService {
 
     return Ok(event.value);
 }
-    
-    async publishEvent(eventId: number, userId: string, role: string) {
+
+    async publishEvent(
+        eventId: number,
+        userId: string,
+        role: string
+    ): Promise<Result<undefined, EventError>> {
         const event = await this.eventRepository.findById(eventId);
 
-        if (!event.ok) return Err("Event not found");
-        if (event.value.status !== "draft") return Err("Only draft events can be published");
+        if (!event.ok) {
+            return Err(EventNotFoundError("Event not found"));
+        }
 
         const isOwner = event.value.organizerId === userId;
         const isAdmin = role === "admin";
 
-        if (!isOwner && !isAdmin) return Err("You are not allowed to publish this event");
+        if (!isOwner && !isAdmin) {
+            return Err(UnauthorizedError("You are not allowed to publish this event"));
+        }
 
-        return await this.eventRepository.update(eventId, {status: "published"});
-    }
+        if (event.value.status !== "draft") {
+            return Err(InvalidTransitionError("Only draft events can be published"));
+        }
 
-    async cancelEvent(eventId: number, userId: string, role: string) {
+
+    const updateResult = await this.eventRepository.update(eventId, { status: "published" });
+
+if (!updateResult.ok) {
+    return Err(EventNotFoundError(updateResult.value));
+}
+
+return Ok(undefined);    }
+
+    async cancelEvent(
+        eventId: number,
+        userId: string,
+        role: string
+    ): Promise<Result<undefined, EventError>> {
         const event = await this.eventRepository.findById(eventId);
 
-        if (!event.ok) return Err("Event not found");
-        if (event.value.status !== "published") return Err("Only published events can be cancelled");
+        if (!event.ok) {
+            return Err(EventNotFoundError("Event not found"));
+        }
 
         const isOwner = event.value.organizerId === userId;
         const isAdmin = role === "admin";
 
-        if (!isOwner && !isAdmin) return Err("You are not allowed to cancel this event");
+        if (!isOwner && !isAdmin) {
+            return Err(UnauthorizedError("You are not allowed to cancel this event"));
+        }
 
-        return await this.eventRepository.update(eventId, {status: "cancelled"});
+        if (event.value.status !== "published") {
+            return Err(InvalidTransitionError("Only published events can be cancelled"));
+        }
+
+const updateResult = await this.eventRepository.update(eventId, { status: "cancelled" });
+
+if (!updateResult.ok) {
+    return Err(EventNotFoundError(updateResult.value));
+}
+
+return Ok(undefined);
+
     }
 
     async searchEvents(query: string, category?: Category, timeframe?: EventTimeFrame){

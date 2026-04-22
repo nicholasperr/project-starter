@@ -7,6 +7,7 @@ import { EventTimeFrame } from "../service/EventService";
 import { time } from "node:console";
 import { EventError } from "../event/errors";
 
+
 export interface IEventController {
     createEvent(req: Request, res: Response): Promise<void>;
     showEventCreateForm(res: Response, session: IAppBrowserSession):  Promise<void>;
@@ -30,6 +31,17 @@ class EventController implements IEventController {
         private readonly eventService: IEventService,
         private readonly logger: ILoggingService,
     ) {}
+
+    private mapEventErrorStatus(error: EventError): number {
+    if (error.name === "EventNotFoundError") return 404;
+    if (error.name === "UnauthorizedError") return 403;
+    if (error.name === "InvalidTransitionError") return 409;
+    return 400;
+}
+
+    private isHtmxRequest(req: Request): boolean {
+    return req.get("HX-Request") === "true";
+}
 
     async showEventDetail(req: Request, res: Response, session: IAppBrowserSession){
         this.logger.info(`Showing event detail for event ID: ${req.params.id}`);
@@ -79,74 +91,116 @@ class EventController implements IEventController {
         });
     }
 
-    async publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession) {
-        const eventId = Number(req.params.id);
+async publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession) {
+    const eventId = Number(req.params.id);
 
-        if (Number.isNaN(eventId)) {
-            res.status(400).render("partials/error", {
-                message: "Invalid event id",
-                layout: false,
-            });
-            return;
-        }
-
-        const user = session.authenticatedUser;
-
-        if (!user) {
-            res.status(401).render("partials/error", {
-                message: "Please log in to continue.",
-                layout: false,
-            });
-            return;
-        }
-
-        const result = await this.eventService.publishEvent(eventId, user.userId, user.role);
-
-        if (!result.ok) {
-            res.status(400).render("partials/error", {
-                message: result.value,
-                layout: false,
-            });
-            return;
-        }
-
-        res.redirect(`/events/${eventId}`);
+    if (Number.isNaN(eventId)) {
+        res.status(400).render("partials/error", {
+            message: "Invalid event id",
+            layout: false,
+        });
+        return;
     }
 
-    async cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession) {
-        const eventId = Number(req.params.id);
+    const user = session.authenticatedUser;
 
-        if (Number.isNaN(eventId)) {
-            res.status(400).render("partials/error", {
-                message: "Invalid event id",
-                layout: false,
-            });
-            return;
-        }
-
-        const user = session.authenticatedUser;
-
-        if (!user) {
-            res.status(401).render("partials/error", {
-                message: "Please log in to continue.",
-                layout: false,
-            });
-            return;
-        }
-
-        const result = await this.eventService.cancelEvent(eventId, user.userId, user.role);
-
-        if (!result.ok) {
-            res.status(400).render("partials/error", {
-                message: result.value,
-                layout: false,
-            });
-            return;
-        }
-
-        res.redirect(`/events/${eventId}`);
+    if (!user) {
+        res.status(401).render("partials/error", {
+            message: "Please log in to continue.",
+            layout: false,
+        });
+        return;
     }
-    
+
+    const result = await this.eventService.publishEvent(eventId, user.userId, user.role);
+
+    if (!result.ok) {
+        const status = this.mapEventErrorStatus(result.value);
+        res.status(status).render("partials/error", {
+            message: result.value.message,
+            layout: false,
+        });
+        return;
+    }
+
+    const refreshed = await this.eventService.getVisibleEventById(eventId, user.userId, user.role);
+
+    if (!refreshed.ok) {
+        const status = this.mapEventErrorStatus(refreshed.value as EventError);
+        res.status(status).render("partials/error", {
+            message: refreshed.value.message,
+            layout: false,
+        });
+        return;
+    }
+
+    if (this.isHtmxRequest(req)) {
+        res.render("event/partials/lifecycle-controls", {
+            event: refreshed.value,
+            session,
+            layout: false,
+        });
+        return;
+    }
+
+    res.redirect(`/events/${eventId}`);
+}
+
+async cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession) {
+    const eventId = Number(req.params.id);
+
+    if (Number.isNaN(eventId)) {
+        res.status(400).render("partials/error", {
+            message: "Invalid event id",
+            layout: false,
+        });
+        return;
+    }
+
+    const user = session.authenticatedUser;
+
+    if (!user) {
+        res.status(401).render("partials/error", {
+            message: "Please log in to continue.",
+            layout: false,
+        });
+        return;
+    }
+
+    const result = await this.eventService.cancelEvent(eventId, user.userId, user.role);
+
+    if (!result.ok) {
+        const status = this.mapEventErrorStatus(result.value);
+        res.status(status).render("partials/error", {
+            message: result.value.message,
+            layout: false,
+        });
+        return;
+    }
+
+    const refreshed = await this.eventService.getVisibleEventById(eventId, user.userId, user.role);
+
+    if (!refreshed.ok) {
+        const status = this.mapEventErrorStatus(refreshed.value as EventError);
+        res.status(status).render("partials/error", {
+            message: refreshed.value.message,
+            layout: false,
+        });
+        return;
+    }
+
+    if (this.isHtmxRequest(req)) {
+        res.render("event/partials/lifecycle-controls", {
+            event: refreshed.value,
+            session,
+            layout: false,
+        });
+        return;
+    }
+
+    res.redirect(`/events/${eventId}`);
+}
+
     async createEvent(req: Request, res: Response) {
         const {
             title,
