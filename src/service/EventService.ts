@@ -112,6 +112,10 @@ class EventService implements IEventService {
     }
 
     async searchEvents(query: string){
+        if (query !== "" && query.trim() === "") {
+            return Err(InvalidInput("Query entered cannot be only whitespace"));
+        }
+        
         return await this.eventRepository.findFiltered(query);
     }
 
@@ -122,7 +126,18 @@ class EventService implements IEventService {
         }
         let events = results.value.filter(e => e.status === "published");
         
+        const validCategories = ["music", "sports", "academic", "social", "food", "arts", "networking", "other"];
+        if (category && !validCategories.includes(category)) {
+            return Err(InvalidInput("Category entered is not valid."));
+        }
+
         if (category) { events = events.filter(e => e.category === category) }
+       
+        const validTimeframes = ["all_upcoming", "this_week", "this_weekend"];
+        if (timeframe && !validTimeframes.includes(timeframe)) {
+            return Err(InvalidInput("Timeframe entered is not valid"));
+        }
+        
         const today = new Date();
         
         if (timeframe === "this_week") {

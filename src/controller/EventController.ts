@@ -333,7 +333,10 @@ class EventController implements IEventController {
             return;
         }
 
-        res.render("events/index", {
+        if (req.get("HX-Request") === "true") {
+            res.render("partials/event-list", { events: result.value, layout: false});
+        } else { 
+            res.render("events/index", {
             events: result.value,
             query: query,
             category: null,
@@ -342,6 +345,8 @@ class EventController implements IEventController {
             pageError: null
         });
     }
+    }
+
     async getFilteredEvents(req: Request, res: Response): Promise<void> {
 
         const category = req.query.category as Category | undefined;
@@ -352,16 +357,19 @@ class EventController implements IEventController {
             res.status(400).json({ error: result.value.message });
             return;
         }
-        
-        res.render("events/index", {
+
+        if (req.get("HX-Request") === "true") {
+            res.render("partials/event-list", { events: result.value, layout: false});
+        } else { 
+            res.render("events/index", {
             events: result.value,
             category: category ?? null,
             timeframe: timeframe ?? null, 
             query: null,
             session: (req as any).session,
             pageError: null
-        });
-        
+        }); 
+    }
     }
 
     
