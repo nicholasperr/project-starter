@@ -1,0 +1,14 @@
+<% if (events.length === 0) { %>
+    <p class="text-slate-500">No events found.</p>
+  <% } else { %>
+    <ul class="space-y-4">
+      <% events.forEach(event => { %>
+        <li class="p-4 border border-slate-200 rounded-xl bg-slate-50">
+          <a href="/events/<%= event.id %>" class="text-lg font-semibold text-blue-600 hover:underline"><%= event.title %></a>
+          <p class="text-sm text-slate-500 mt-1"><%= event.location %> &middot; <%= event.startDatetime.toLocaleDateString() %> <%= event.startDatetime.toLocaleTimeString() %></p>
+          <p class="text-sm text-slate-600 mt-1"><%= event.description %></p>
+          <span class="text-xs text-slate-400"><%= event.categrory %></span>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>

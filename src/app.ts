@@ -255,17 +255,6 @@ class ExpressApp implements IApp {
     );
 
     this.app.get(
-      "/events",
-      asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
-          return;
-        }
-        this.logger.info(`GET /events`);
-
-        this.eventController.searchEvents(req, res);
-      })
-    );
-    this.app.get(
       "/new",
       asyncHandler(async (req, res) => {
         if (!this.requireAuthenticated(req, res)) {
@@ -285,6 +274,17 @@ class ExpressApp implements IApp {
         }
 
         this.eventController.searchEvents(req, res);
+      })
+    );
+    this.app.get(
+      "/events",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`GET /events`);
+
+        this.eventController.getFilteredEvents(req, res);
       })
     );
       this.app.get(
@@ -374,8 +374,8 @@ class ExpressApp implements IApp {
           return;
         }
         this.logger.info(`POST /events`);
-
-        this.eventController.createEvent(req, res);
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.createEvent(req, res, browserSession);
       }),
     );
 
