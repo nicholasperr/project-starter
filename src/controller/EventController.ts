@@ -61,7 +61,7 @@ class EventController implements IEventController {
         );
 
         if (!result.ok) {
-            const error = result.value;
+            const error = result.value as EventError
 
             const status =
                 error.name === "EventNotFoundError" ? 404 : 403;
