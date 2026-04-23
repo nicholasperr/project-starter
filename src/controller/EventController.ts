@@ -353,7 +353,7 @@ class EventController implements IEventController {
         if (Object.keys(errors).length > 0) {
             const existingResult = await this.eventService.getEventById(eventId);
             if (existingResult.ok === false) {
-                res.status(404).render("partials/error", {
+                res.status(400).render("partials/error", {
                     message: existingResult.value.message,
                     layout: false,
                 });
@@ -388,9 +388,7 @@ class EventController implements IEventController {
 
         if (!result.ok) {
             const error = result.value as EventError;
-            let statusCode = 400;
-            if (error.name === 'EventNotFound') statusCode = 404;
-            res.status(statusCode).render("partials/error", {
+            res.status(400).render("partials/error", {
                 message: error.message,
                 layout: false,
             });

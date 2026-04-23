@@ -2,7 +2,7 @@ import { CreateEventService } from "../../src/service/EventService";
 import { CreateEventRepository } from "../../src/repository/EventRepository";
 import { CreateRSVPRepository } from "../../src/repository/RSVPRepository";
 import { Err } from "../../src/lib/result";
-import { EventNotFoundError } from "../../src/service/errors";
+import { EventNotFound } from "../../src/lib/errors";
 
 async function makeEventFuture(service: ReturnType<typeof CreateEventService>, eventId: number) {
   const eventResult = await service.getEventById(eventId);
@@ -126,14 +126,14 @@ describe("EventService RSVP Toggle", () => {
   it("passes through repository error when create fails", async () => {
     await makeEventFuture(service, 1);
 
-    jest.spyOn(rsvpRepo, "findByIds").mockResolvedValue(Err(EventNotFoundError("RSVP not found")));
-    jest.spyOn(rsvpRepo, "create").mockResolvedValue(Err(EventNotFoundError("Injected error")));
+    jest.spyOn(rsvpRepo, "findByIds").mockResolvedValue(Err(EventNotFound("RSVP not found")));
+    jest.spyOn(rsvpRepo, "create").mockResolvedValue(Err(EventNotFound("Injected error")));
 
     const result = await service.toggleRSVP(1, "user-1");
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-        expect(result.value.name).toBe("EventNotFoundError");
+        expect(result.value.name).toBe("EventNotFound");
         expect(result.value.message).toBe("Injected error");
     }
     });
