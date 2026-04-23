@@ -17,8 +17,6 @@ import {
   touchAppSession,
 } from "./session/AppSession";
 import { ILoggingService } from "./service/LoggingService";
-import { IEventFilterController } from "./controller/EventFilterController";
-import { IEventSearchController } from "./controller/EventSearchController";
 import { IEventController } from "./controller/EventController";
 
 type AsyncRequestHandler = RequestHandler;
@@ -40,8 +38,6 @@ class ExpressApp implements IApp {
     private readonly authController: IAuthController,
     private readonly eventController: IEventController,
     private readonly logger: ILoggingService,
-    private readonly eventFilterController: IEventFilterController,
-    private readonly eventSearchController: IEventSearchController,
   ) {
     this.app = express();
     this.registerMiddleware();
@@ -259,17 +255,6 @@ class ExpressApp implements IApp {
     );
 
     this.app.get(
-      "/events",
-      asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
-          return;
-        }
-        this.logger.info(`GET /events`);
-
-        this.eventFilterController.getFilteredEvents(req, res);
-      })
-    );
-    this.app.get(
       "/new",
       asyncHandler(async (req, res) => {
         if (!this.requireAuthenticated(req, res)) {
@@ -288,7 +273,18 @@ class ExpressApp implements IApp {
           return;
         }
 
-        this.eventSearchController.searchEvents(req, res);
+        this.eventController.searchEvents(req, res);
+      })
+    );
+    this.app.get(
+      "/events",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`GET /events`);
+
+        this.eventController.getFilteredEvents(req, res);
       })
     );
       this.app.get(
@@ -348,6 +344,7 @@ class ExpressApp implements IApp {
         }
 
         await this.eventController.toggleRSVPFromForm(
+          req,
           res,
           eventId,
           currentUser.userId,
@@ -355,6 +352,19 @@ class ExpressApp implements IApp {
         );
       }),
     );
+
+    this.app.get(
+      "/my-rsvps",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showRSVPDashboard(res, browserSession);
+      }),
+    );
+    
 
 
     this.app.post(
@@ -364,8 +374,8 @@ class ExpressApp implements IApp {
           return;
         }
         this.logger.info(`POST /events`);
-
-        this.eventController.createEvent(req, res);
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.createEvent(req, res, browserSession);
       }),
     );
 
@@ -392,6 +402,7 @@ class ExpressApp implements IApp {
       }),
     );
 
+
     // ── Error handler ────────────────────────────────────────────────
 
     this.app.use((err: unknown, _req: Request, res: Response, _next: (value?: unknown) => void) => {
@@ -413,8 +424,6 @@ export function CreateApp(
   authController: IAuthController,
   eventController: IEventController,
   logger: ILoggingService,
-  eventFilterController: IEventFilterController,
-  eventSearchController: IEventSearchController,
 ): IApp {
-  return new ExpressApp(authController, eventController, logger, eventFilterController, eventSearchController);
+  return new ExpressApp(authController, eventController, logger);
 }

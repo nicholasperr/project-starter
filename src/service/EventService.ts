@@ -3,251 +3,270 @@ import { IRSVP, RSVPStatus } from "../model/rsvp";
 import { IEventRepository } from "../repository/EventRepository";
 import { IRSVPRepository } from "../repository/RSVPRepository";
 import { Ok, Err, type Result } from "../lib/result";
+import { EventError, EventNotFound, Unauthorized, InvalidInput, InvalidState, DashboardAccessError, DashboardDataError, EventClosedError } from "../lib/errors";
+
+export type EventTimeFrame = "all_upcoming" | "this_week" | "this_weekend";
 
 export interface IEventService {
-    createEvent(title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number | null, startDatetime: Date, endDatetime: Date, organizerId: string): Result<void,string>;
-    getEventById(eventId: number): Result<IEvent,string>;
-    getAllEvents(): Result<IEvent[],string>;
-    updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date): Result<void,string>;
-    deleteEvent(eventId: number): Result<void,string>;
-    createRSVP(eventId: number, userId: string, status?: RSVPStatus): Result<void,string>;
-    toggleRSVP(eventId: number, userId: string): Result<string, string>;    
-    getRSVPsForEvent(eventId: number): Result<IRSVP[],string>;
-    updateRSVP(eventId: number, userId: string, status: RSVPStatus): Result<void,string>;
-    deleteRSVP(eventId: number): Result<void,string>;
-    getVisibleEventById(eventId: number, userId: string, role: string): Result<IEvent, string>;
-    publishEvent(eventId: number, userId: string, role: string): Result<IEvent, string>;
-    cancelEvent(eventId: number, userId: string, role: string): Result<IEvent, string>;
+    createEvent(title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number | null, startDatetime: Date, endDatetime: Date, organizerId: string): Promise<Result<undefined,EventError>>;
+    getEventById(eventId: number): Promise<Result<IEvent,EventError>>;
+    getAllEvents(): Promise<Result<IEvent[],EventError>>;
+    updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date): Promise<Result<undefined,EventError>>;
+    deleteEvent(eventId: number): Promise<Result<undefined,EventError>>;
+    createRSVP(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined,EventError>>;
+    toggleRSVP(eventId: number, userId: string): Promise<Result<undefined, EventError>>;    
+    getRSVPsForEvent(eventId: number): Promise<Result<IRSVP[],EventError>>;
+    updateRSVP(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined,EventError>>;
+    deleteRSVP(eventId: number, userId: string): Promise<Result<undefined,EventError>>;
+    getUserDashboard(userId: string, role: string,): Promise<Result<{ upcoming: {rsvp: IRSVP, event: IEvent}[]; past: {rsvp: IRSVP, event: IEvent}[] }, EventError>>;
+    getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, EventError>>;
+    publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>>;
+    cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>>;
+    searchEvents(query: string): Promise<Result<IEvent[], EventError>>;
+    getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): Promise<Result<IEvent[], EventError>>;
 }
 
 class EventService implements IEventService {
     constructor(private readonly eventRepository: IEventRepository, private readonly rsvpRepository: IRSVPRepository) {}
 
-    createEvent(title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number, startDatetime: Date, endDatetime: Date, organizerId: string) {
-        try {
-            this.eventRepository.create(title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId);
-            return Ok(undefined);
-        } catch (error) {
-            return Err(error instanceof Error ? error.message : 'Unable to create event');
-        }
+    async createEvent(title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number | null, startDatetime: Date, endDatetime: Date, organizerId: string) {
+        return await this.eventRepository.create(title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId);
     }
 
-    getEventById(eventId: number) {
-        const event = this.eventRepository.findById(eventId);
-        if (!event) {
-            return Err('Event not found');
-        }
-        return Ok(event);
+    async getEventById(eventId: number) {
+       return await this.eventRepository.findById(eventId)
     }
 
-    getAllEvents() {
-        try {
-            return Ok(this.eventRepository.findAll());
-        } catch (error) {
-            return Err(error instanceof Error ? error.message : 'Unable to retrieve events');
-        }
+    async getAllEvents() {
+       return await this.eventRepository.findAll();
     }
 
-    updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date) {
-        const params: UpdateEventParams = { title, description, location, category, status, capacity, startDatetime, endDatetime };
-        try {
-            this.eventRepository.update(eventId, params);
-            return Ok(undefined);
-        } catch (error) {
-            return Err(error instanceof Error ? error.message : 'Unable to update event');
-        }
+    async updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date) {
+       const params: UpdateEventParams = { title, description, location, category, status, capacity, startDatetime, endDatetime };
+       return await this.eventRepository.update(eventId, params);
     }
 
-    deleteEvent(eventId: number) {
-        try {
-            this.eventRepository.delete(eventId);
-            return Ok(undefined);
-        } catch (error) {
-            return Err(error instanceof Error ? error.message : 'Unable to delete event');
-        }
+    async deleteEvent(eventId: number) {
+       return await this.eventRepository.delete(eventId);
     }
 
-    createRSVP(eventId: number, userId: string, status?: RSVPStatus) {
-        try {
-            const finalStatus: RSVPStatus = status ?? "pending";
-
-            this.rsvpRepository.create(eventId, userId, finalStatus);
-
-            return Ok(undefined);
-        } catch (error) {
-            return Err(error instanceof Error ? error.message : "Unable to create RSVP");
-        }
+    async createRSVP(eventId: number, userId: string, status: RSVPStatus) {
+       return await this.rsvpRepository.create(eventId, userId, status);
     }
-    
-    getRSVPsForEvent(eventId: number) {
-        try {
-            return Ok(this.rsvpRepository.findByEventId(eventId));
-        } catch (error) {
-            return Err(error instanceof Error ? error.message : 'Unable to retrieve RSVPs');
-        }
+  
+    async getRSVPsForEvent(eventId: number) {
+       return await this.rsvpRepository.findByEventId(eventId)
     }
 
-    updateRSVP(eventId: number, userId: string, status: RSVPStatus) {
-        try {
-            this.rsvpRepository.update(eventId, status);
-            return Ok(undefined);
-        } catch (error) {
-            return Err(error instanceof Error ? error.message : 'Unable to update RSVP');
-        }
+    async updateRSVP(eventId: number, userId: string, status: RSVPStatus) {
+       return await this.rsvpRepository.update(eventId, status);
+    }
+ 
+    async deleteRSVP(eventId: number) {
+       return await this.rsvpRepository.delete(eventId);
     }
 
-    deleteRSVP(eventId: number) {
-        try {
-            this.rsvpRepository.delete(eventId);
-            return Ok(undefined);
-        } catch (error) {
-            return Err(error instanceof Error ? error.message : 'Unable to delete RSVP');
-        }
-    }
-    getVisibleEventById(eventId: number, userId: string, role: string): Result<IEvent, string> {
-        const event = this.eventRepository.findById(eventId);
+    async getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, EventError>> {
+        const event = await this.eventRepository.findById(eventId);
 
-        if (!event) {
-            return Err("Event not found");
+        if (!event.ok) {
+            return event;
         }
 
-        if (event.status === "published" || event.status === "cancelled" || event.status === "past") {
-            return Ok(event);
+        const canViewDraft = role === "admin" || event.value.organizerId === userId;
+
+        if (!canViewDraft && event.value.status === 'draft') {
+            return Err(Unauthorized("No Permission to view this event"));
         }
 
-        const canViewDraft = role === "admin" || event.organizerId === userId;
-
-        if (!canViewDraft) {
-            return Err("Event not found");
-        }
-
-        return Ok(event);
+        return event;
     }
 
+    async publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>> {
+        const event = await this.eventRepository.findById(eventId);
 
-    
-    publishEvent(eventId: number, userId: string, role: string): Result<IEvent, string> {
-        const event = this.eventRepository.findById(eventId);
+        if (!event.ok) return Err(event.value as EventError);
+        if (event.value.status !== "draft") return Err(InvalidState("Only draft events can be published"));
 
-        if (!event) {
-            return Err("Event not found");
-        }
+        const isOwner = event.value.organizerId === userId;
+        const isAdmin = role === "admin";
+        if (!isOwner && !isAdmin) return Err(Unauthorized("You are not allowed to publish this event"));
 
-        const isOwner = event.organizerId === userId;
+        return await this.eventRepository.update(eventId, {status: "published"});
+    }
+
+    async cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>> {
+        const event = await this.eventRepository.findById(eventId);
+
+        if (!event.ok) return Err(event.value as EventError);
+        if (event.value.status !== "published") return Err(InvalidState("Only published events can be cancelled"));
+
+        const isOwner = event.value.organizerId === userId;
         const isAdmin = role === "admin";
 
-        if (!isOwner && !isAdmin) {
-            return Err("You are not allowed to publish this event");
-        }
+        if (!isOwner && !isAdmin) return Err(Unauthorized("You are not allowed to cancel this event"));
 
-        if (event.status !== "draft") {
-            return Err("Only draft events can be published");
-        }
-
-        const updated = this.eventRepository.update(eventId, {
-            status: "published",
-        });
-
-        return Ok(updated);
+        return await this.eventRepository.update(eventId, {status: "cancelled"});
     }
 
-    cancelEvent(eventId: number, userId: string, role: string): Result<IEvent, string> {
-        const event = this.eventRepository.findById(eventId);
-
-        if (!event) {
-            return Err("Event not found");
+    async searchEvents(query: string){
+        if (query !== "" && query.trim() === "") {
+            return Err(InvalidInput("Query entered cannot be only whitespace"));
         }
-
-        const isOwner = event.organizerId === userId;
-        const isAdmin = role === "admin";
-
-        if (!isOwner && !isAdmin) {
-            return Err("You are not allowed to cancel this event");
-        }
-
-        if (event.status !== "published") {
-            return Err("Only published events can be cancelled");
-        }
-
-        const updated = this.eventRepository.update(eventId, {
-            status: "cancelled",
-        });
-
-        return Ok(updated);
+        
+        return await this.eventRepository.findFiltered(query);
     }
 
-    // handles RSVP behavior (new RSVP, cancel existing RSVP, and reactivate cancelled RSVP)
-    toggleRSVP(eventId: number, userId: string): Result<string, string> {
-
-        // make sure event exists first
-        const event = this.eventRepository.findById(eventId);
-
-        if (!event) {
-            return Err("Event not found");
+    async getFilteredEvents(category?: Category, timeframe?: EventTimeFrame) {
+        const results = await this.eventRepository.findAll()
+        if (results.ok === false) {
+            return results;
+        }
+        let events = results.value.filter(e => e.status === "published");
+        
+        const validCategories = ["music", "sports", "academic", "social", "food", "arts", "networking", "other"];
+        if (category && !validCategories.includes(category)) {
+            return Err(InvalidInput("Category entered is not valid."));
         }
 
-        // get all RSVPs for this event
-        const allRSVPs = this.rsvpRepository.findByEventId(eventId);
+        if (category) { events = events.filter(e => e.category === category) }
+       
+        const validTimeframes = ["all_upcoming", "this_week", "this_weekend"];
+        if (timeframe && !validTimeframes.includes(timeframe)) {
+            return Err(InvalidInput("Timeframe entered is not valid"));
+        }
+        
+        const today = new Date();
+        
+        if (timeframe === "this_week") {
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay());
 
-        // check if this user already has one
-        const existing = allRSVPs.find(r => r.userId === userId);
+            const weekEnd = new Date(today);
+            weekEnd.setDate(today.getDate() - today.getDay() + 6);
 
-        // #1: no RSVP yet → create one
-        if (!existing) {
+            events = events.filter(e => e.startDatetime >= weekStart && e.startDatetime <= weekEnd);
+        }
 
-            // default is going
+        else if (timeframe === "this_weekend") {
+            events = events.filter(e => [0, 5, 6].includes(e.startDatetime.getDay()));
+        }
+
+        else if (timeframe === "all_upcoming") {
+            events = events.filter(e => e.startDatetime >= today)
+        }
+
+        return Ok(events)
+    }
+
+    async toggleRSVP(eventId: number, userId: string): Promise<Result<undefined, EventError>> {
+        const eventResult = await this.eventRepository.findById(eventId);
+        if (!eventResult.ok) {
+            return Err(EventNotFound((eventResult.value as EventError).message));
+        }
+
+        const event = eventResult.value;
+
+        if (event.status === "cancelled") {
+            return Err(EventClosedError("This event has been cancelled"));
+        }
+
+        if (event.status === "past") {
+            return Err(EventClosedError("This event has already ended"));
+        }
+
+        const now = new Date();
+        if (event.startDatetime < now) {
+            return Err(EventClosedError("Event already started"));
+        }
+
+        const allRSVPs = await this.rsvpRepository.findByEventId(eventId);
+        const goingCount = allRSVPs.ok ? allRSVPs.value.filter((rsvp) => rsvp.status === "going").length : 0;
+
+        const rsvp = await this.rsvpRepository.findByIds(userId, eventId);
+
+        if (!rsvp.ok) {
             let status: RSVPStatus = "going";
-
-            // if event has a set capacity, check if it's full
-            if (event.capacity !== null) {
-
-                const goingCount = allRSVPs.filter(r => r.status === "going").length;
-
-                if (goingCount >= event.capacity) {
-                    status = "waitlisted";
-                }
+            if (event.capacity !== null && goingCount >= event.capacity) {
+                status = "waitlisted";
             }
 
-            this.rsvpRepository.create(eventId, userId, status);
-
-            return Ok(status);
-        }
-
-        // #2: RSVP already active, cancel
-        if (existing.status === "going" || existing.status === "waitlisted") {
-
-            this.rsvpRepository.update(existing.id, "cancelled");
-
-            return Ok("cancelled");
-        }
-
-        // #3: RSVP cancelled, reactivate
-        if (existing.status === "cancelled") {
-
-            // default is going again
-            let status: RSVPStatus = "going";
-
-            if (event.capacity !== null) {
-
-                const goingCount = allRSVPs.filter(r => r.status === "going").length;
-
-                if (goingCount >= event.capacity) {
-                    status = "waitlisted";
-                }
+            const createResult = await this.rsvpRepository.create(eventId, userId, status);
+            if (!createResult.ok) {
+                return createResult;
             }
-
-            this.rsvpRepository.update(existing.id, status);
-
-            return Ok(status);
+            return Ok(undefined);
         }
 
-        return Err("Invalid state");
+        if (rsvp.value.status !== "cancelled") {
+            const updateResult = await this.rsvpRepository.update(rsvp.value.id, "cancelled");
+            if (!updateResult.ok) {
+                return updateResult;
+            }
+            return Ok(undefined);
+        }
+
+        let status: RSVPStatus = "going";
+        if (event.capacity !== null && goingCount >= event.capacity) {
+            status = "waitlisted";
+        }
+
+        const reactivateResult = await this.rsvpRepository.update(rsvp.value.id, status);
+        if (!reactivateResult.ok) {
+            return reactivateResult;
+        }
+        return Ok(undefined);
+    }
+
+    async getUserDashboard(userId: string, role: string): Promise<Result<{ upcoming: { rsvp: IRSVP; event: IEvent }[]; past: { rsvp: IRSVP; event: IEvent }[] }, EventError>> {
+        if (role !== "user") {
+            return Err(DashboardAccessError("Dashboard only available to members"));
+        }
+
+        const allRSVPs = await this.rsvpRepository.findAll();
+        if (!allRSVPs.ok) {
+            return Err(DashboardDataError((allRSVPs.value as EventError).message));
+        }
+
+        const userRSVPs = allRSVPs.value.filter((rsvp) => rsvp.userId === userId);
+
+        const joined = await Promise.all(
+            userRSVPs.map(async (rsvp) => {
+                const event = await this.eventRepository.findById(rsvp.eventId);
+                if (!event.ok) return { rsvp, event: null };
+                return { rsvp, event: event.value };
+            })
+        );
+
+        const filtered = joined.filter((v) => v.event != null) as { rsvp: IRSVP; event: IEvent }[];
+        const now = new Date();
+        const upcoming: { rsvp: IRSVP; event: IEvent }[] = [];
+        const past: { rsvp: IRSVP; event: IEvent }[] = [];
+
+        for (const item of filtered) {
+            const event = item.event;
+            if (
+                event.status === "cancelled" ||
+                event.status === "past" ||
+                item.rsvp.status === "cancelled" ||
+                event.startDatetime < now
+            ) {
+                past.push(item);
+            } else {
+                upcoming.push(item);
+            }
+        }
+
+        upcoming.sort((a, b) => a.event.startDatetime.getTime() - b.event.startDatetime.getTime());
+        past.sort((a, b) => b.event.startDatetime.getTime() - a.event.startDatetime.getTime());
+
+        return Ok({ upcoming, past });
     }
 }
 
 export const CreateEventService = (
-    eventRepository: IEventRepository,
-    rsvpRepository: IRSVPRepository
+   eventRepository: IEventRepository,
+   rsvpRepository: IRSVPRepository
 ): IEventService => {
-    return new EventService(eventRepository, rsvpRepository);
+   return new EventService(eventRepository, rsvpRepository);
 };
