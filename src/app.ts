@@ -255,17 +255,6 @@ class ExpressApp implements IApp {
     );
 
     this.app.get(
-      "/events",
-      asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
-          return;
-        }
-        this.logger.info(`GET /events`);
-
-        this.eventController.searchEvents(req, res);
-      })
-    );
-    this.app.get(
       "/new",
       asyncHandler(async (req, res) => {
         if (!this.requireAuthenticated(req, res)) {
