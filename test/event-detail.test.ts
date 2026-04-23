@@ -1,5 +1,5 @@
 import request from "supertest";
-import { createComposedApp } from "../composition";
+import { createComposedApp } from "../src/composition";
 
 describe("Feature 2 - Event Detail", () => {
   let app: any;
@@ -57,6 +57,6 @@ describe("Feature 2 - Event Detail", () => {
 
     const res = await agent.get("/events/2");
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(403);
   });
 });
