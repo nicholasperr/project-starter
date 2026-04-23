@@ -4,8 +4,9 @@ import { IEventRepository } from "../repository/EventRepository";
 import { IRSVPRepository } from "../repository/RSVPRepository";
 import { Ok, Err, type Result } from "../lib/result";
 import { EventError, EventNotFound, Unauthorized, InvalidInput, InvalidState } from "../lib/errors";
+import { DashboardAccessError, DashboardDataError, EventClosedError, EventNotFoundError, type EventError } from "./errors";
 
-export type EventTimeFrame = "all_upcoming" | "this_week" | "this_weekend"
+export type EventTimeFrame = "all_upcoming" | "this_week" | "this_weekend";
 
 export interface IEventService {
     createEvent(title: string, description: string, location: string, category: Category, status: EventStatus, capacity: number | null, startDatetime: Date, endDatetime: Date, organizerId: string): Promise<Result<undefined,EventError>>;
@@ -29,49 +30,50 @@ export interface IEventService {
 class EventService implements IEventService {
     constructor(private readonly eventRepository: IEventRepository, private readonly rsvpRepository: IRSVPRepository) {}
 
-    async createEvent(title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number, startDatetime: Date, endDatetime: Date, organizerId: string) {
+    async createEvent(title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number | null, startDatetime: Date, endDatetime: Date, organizerId: string) {
         return await this.eventRepository.create(title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId);
-  
     }
 
     async getEventById(eventId: number) {
-        return await this.eventRepository.findById(eventId);
+       return await this.eventRepository.findById(eventId)
     }
 
     async getAllEvents() {
-        return await this.eventRepository.findAll();
+       return await this.eventRepository.findAll();
     }
 
     async updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date) {
-        const params: UpdateEventParams = { title, description, location, category, status, capacity, startDatetime, endDatetime };
-        return await this.eventRepository.update(eventId, params);
+       const params: UpdateEventParams = { title, description, location, category, status, capacity, startDatetime, endDatetime };
+       return await this.eventRepository.update(eventId, params);
     }
 
     async deleteEvent(eventId: number) {
-        return await this.eventRepository.delete(eventId);
+       return await this.eventRepository.delete(eventId);
     }
 
     async createRSVP(eventId: number, userId: string, status: RSVPStatus) {
-        return await this.rsvpRepository.create(eventId, userId, status);
+       return await this.rsvpRepository.create(eventId, userId, status);
     }
-    
+  
     async getRSVPsForEvent(eventId: number) {
-        return await this.rsvpRepository.findByEventId(eventId)
+       return await this.rsvpRepository.findByEventId(eventId)
     }
 
     async updateRSVP(eventId: number, userId: string, status: RSVPStatus) {
-        return await this.rsvpRepository.update(eventId, status);
+       return await this.rsvpRepository.update(eventId, status);
+    }
+ 
+    async deleteRSVP(eventId: number) {
+       return await this.rsvpRepository.delete(eventId);
     }
 
-    async deleteRSVP(eventId: number) {
-        return await this.rsvpRepository.delete(eventId);
-    }
-    async getVisibleEventById(eventId: number, userId: string, role: string) {
+    async getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, EventError>> {
         const event = await this.eventRepository.findById(eventId);
 
         if (!event.ok) {
             return event;
         }
+
         const canViewDraft = role === "admin" || event.value.organizerId === userId;
 
         if (!canViewDraft && event.value.status === 'draft') {
@@ -81,9 +83,7 @@ class EventService implements IEventService {
         return event;
     }
 
-
-    
-    async publishEvent(eventId: number, userId: string, role: string) {
+    async publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>> {
         const event = await this.eventRepository.findById(eventId);
 
         if (!event.ok) return Err(event.value as EventError);
@@ -91,13 +91,14 @@ class EventService implements IEventService {
 
         const isOwner = event.value.organizerId === userId;
         const isAdmin = role === "admin";
+        if (!isOwner && !isAdmin) return Err(EventNotFoundError("You are not allowed to publish this event"));
 
         if (!isOwner && !isAdmin) return Err(Unauthorized("You are not allowed to publish this event"));
 
         return await this.eventRepository.update(eventId, {status: "published"});
     }
 
-    async cancelEvent(eventId: number, userId: string, role: string) {
+    async cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>> {
         const event = await this.eventRepository.findById(eventId);
 
         if (!event.ok) return Err(event.value as EventError);
@@ -105,6 +106,7 @@ class EventService implements IEventService {
 
         const isOwner = event.value.organizerId === userId;
         const isAdmin = role === "admin";
+        if (!isOwner && !isAdmin) return Err(EventNotFoundError("You are not allowed to cancel this event"));
 
         if (!isOwner && !isAdmin) return Err(Unauthorized("You are not allowed to cancel this event"));
 
@@ -161,61 +163,92 @@ class EventService implements IEventService {
         return Ok(events)
     }
 
-    // handles RSVP behavior (new RSVP, cancel existing RSVP, and reactivate cancelled RSVP)
-    async toggleRSVP(eventId: number, userId: string): Promise<Result<undefined,EventError>> {
-
-        let event = await this.eventRepository.findById(eventId);
-        if (!event.ok) return Err(event.value as EventError);
-
-        const allRSVPs = await this.rsvpRepository.findByEventId(eventId);
-        const goingCount = allRSVPs.ok ? allRSVPs.value.filter(r => r.status === "going").length : 0; 
-
-        const rsvp = await this.rsvpRepository.findByIds(userId, eventId);
-        
-        if (!rsvp.ok) {//when we have actual errors need to check if its not found or a different error and only do this on not found and return the error otherwise
-
-            let status: RSVPStatus = "going";
-            if (event.value.capacity !== null) {;
-                if (goingCount >= event.value.capacity) status = "waitlisted"
-            }
-
-            return await this.rsvpRepository.create(eventId, userId, status);
+    async toggleRSVP(eventId: number, userId: string): Promise<Result<undefined, EventError>> {
+        const eventResult = await this.eventRepository.findById(eventId);
+        if (!eventResult.ok) {
+            return Err(EventNotFoundError((eventResult.value as EventError).message));
         }
 
-        if (rsvp.value.status != 'cancelled') {
-            return await this.rsvpRepository.update(rsvp.value.id, "cancelled");
+        const event = eventResult.value;
+
+        if (event.status === "cancelled") {
+            return Err(EventClosedError("This event has been cancelled"));
+        }
+
+        if (event.status === "past") {
+            return Err(EventClosedError("This event has already ended"));
+        }
+
+        const now = new Date();
+        if (event.startDatetime < now) {
+            return Err(EventClosedError("Event already started"));
+        }
+
+        const allRSVPs = await this.rsvpRepository.findByEventId(eventId);
+        const goingCount = allRSVPs.ok ? allRSVPs.value.filter((rsvp) => rsvp.status === "going").length : 0;
+
+        const rsvp = await this.rsvpRepository.findByIds(userId, eventId);
+
+        if (!rsvp.ok) {
+            let status: RSVPStatus = "going";
+            if (event.capacity !== null && goingCount >= event.capacity) {
+                status = "waitlisted";
+            }
+
+            const createResult = await this.rsvpRepository.create(eventId, userId, status);
+            if (!createResult.ok) {
+                return createResult;
+            }
+            return Ok(undefined);
+        }
+
+        if (rsvp.value.status !== "cancelled") {
+            const updateResult = await this.rsvpRepository.update(rsvp.value.id, "cancelled");
+            if (!updateResult.ok) {
+                return updateResult;
+            }
+            return Ok(undefined);
         }
 
         let status: RSVPStatus = "going";
-
-        if (event.value.capacity !== null) {
-            if (goingCount >= event.value.capacity) status = "waitlisted";
+        if (event.capacity !== null && goingCount >= event.capacity) {
+            status = "waitlisted";
         }
-        return await this.rsvpRepository.update(rsvp.value.id, status);
 
+        const reactivateResult = await this.rsvpRepository.update(rsvp.value.id, status);
+        if (!reactivateResult.ok) {
+            return reactivateResult;
+        }
+        return Ok(undefined);
     }
 
-    async getUserDashboard(userId: string){
+    async getUserDashboard(userId: string, role: string): Promise<Result<{ upcoming: { rsvp: IRSVP; event: IEvent }[]; past: { rsvp: IRSVP; event: IEvent }[] }, EventError>> {
+        if (role !== "user") {
+            return Err(DashboardAccessError("Dashboard only available to members"));
+        }
+
         const allRSVPs = await this.rsvpRepository.findAll();
-        if (!allRSVPs.ok) return Err(allRSVPs.value as EventError);
+        if (!allRSVPs.ok) {
+            return Err(DashboardDataError((allRSVPs.value as EventError).message));
+        }
 
-        const userRSVPs = allRSVPs.value.filter(r => r.userId === userId);
+        const userRSVPs = allRSVPs.value.filter((rsvp) => rsvp.userId === userId);
 
-        let joined =  await Promise.all(userRSVPs.map(async rsvp => { 
-            const event = await this.eventRepository.findById(rsvp.eventId);
-            if (!event.ok) return { rsvp, event: null };
-            return { rsvp, event: event.value };
-        }));
-        const filtered = joined.filter((v) => v.event != null) as {rsvp:IRSVP,event:IEvent}[]
+        const joined = await Promise.all(
+            userRSVPs.map(async (rsvp) => {
+                const event = await this.eventRepository.findById(rsvp.eventId);
+                if (!event.ok) return { rsvp, event: null };
+                return { rsvp, event: event.value };
+            })
+        );
 
+        const filtered = joined.filter((v) => v.event != null) as { rsvp: IRSVP; event: IEvent }[];
         const now = new Date();
-
-        const upcoming = [];
-        const past = [];
+        const upcoming: { rsvp: IRSVP; event: IEvent }[] = [];
+        const past: { rsvp: IRSVP; event: IEvent }[] = [];
 
         for (const item of filtered) {
-            const event = item.event!;
-
+            const event = item.event;
             if (
                 event.status === "cancelled" ||
                 event.status === "past" ||
@@ -228,22 +261,16 @@ class EventService implements IEventService {
             }
         }
 
-        upcoming.sort((a, b) =>
-            a.event.startDatetime.getTime() - b.event.startDatetime.getTime()
-        );
-
-        past.sort((a, b) =>
-            b.event.startDatetime.getTime() - a.event.startDatetime.getTime()
-        );
+        upcoming.sort((a, b) => a.event.startDatetime.getTime() - b.event.startDatetime.getTime());
+        past.sort((a, b) => b.event.startDatetime.getTime() - a.event.startDatetime.getTime());
 
         return Ok({ upcoming, past });
     }
 }
 
 export const CreateEventService = (
-    eventRepository: IEventRepository,
-    rsvpRepository: IRSVPRepository
+   eventRepository: IEventRepository,
+   rsvpRepository: IRSVPRepository
 ): IEventService => {
-    return new EventService(eventRepository, rsvpRepository);
+   return new EventService(eventRepository, rsvpRepository);
 };
-

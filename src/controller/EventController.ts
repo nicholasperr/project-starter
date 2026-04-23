@@ -13,6 +13,7 @@ export interface IEventController {
     showEventEditForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
     editEvent(req: Request, res: Response):  Promise<void>;
     toggleRSVPFromForm(
+        req: Request,
         res: Response,
         eventId: number,
         userId: string,
@@ -63,16 +64,24 @@ class EventController implements IEventController {
 
         if (!result.ok) {
             res.status(404).render("partials/error", {
-                message: result.value,
+                message: result.value.message,
                 layout: false,
             });
             return;
         }
 
+        const rsvpsResult = await this.eventService.getRSVPsForEvent(eventId);
+        const currentRsvp =
+            rsvpsResult.ok
+                ? rsvpsResult.value.find((rsvp) => rsvp.userId === user.userId) ?? null
+                : null;
+
         res.render("event/show", {
             session,
             pageError: null,
             event: result.value,
+            currentRsvp,
+            errorMessage: null,
         });
     }
 
@@ -101,7 +110,7 @@ class EventController implements IEventController {
 
         if (!result.ok) {
             res.status(400).render("partials/error", {
-                message: result.value,
+                message: result.value.message,
                 layout: false,
             });
             return;
@@ -135,7 +144,7 @@ class EventController implements IEventController {
 
         if (!result.ok) {
             res.status(400).render("partials/error", {
-                message: result.value,
+                message: result.value.message,
                 layout: false,
             });
             return;
@@ -157,51 +166,27 @@ class EventController implements IEventController {
             organizerId,
         } = req.body;
 
-        // Input validation
-        const errors: string[] = [];
-        
-        if (!title || title.trim() === "") {
-            errors.push("Title is required");
-        }
-        
-        if (!description || description.trim() === "") {
-            errors.push("Description is required");
-        }
-        
-        if (!location || location.trim() === "") {
-            errors.push("Location is required");
-        }
-        
-        if (!category) {
-            errors.push("Category is required");
-        }
-        
-        if (capacity !== undefined && capacity !== "" && (isNaN(Number(capacity)) || Number(capacity) < 0)) {
-            errors.push("Capacity must be a positive number");
-        }
-        
-        if (!startDatetime) {
-            errors.push("Start datetime is required");
-        }
-        
-        if (!endDatetime) {
-            errors.push("End datetime is required");
-        }
-        
-        if (startDatetime && endDatetime) {
-            const startDate = new Date(startDatetime);
-            const endDate = new Date(endDatetime);
-            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-                errors.push("Start and end datetimes must be valid dates");
-            } else if (startDate >= endDate) {
-                errors.push("End datetime must be after start datetime");
-            }
-        }
-        
-        // If validation errors exist, re-render form with errors
-        if (errors.length > 0) {
-            this.logger.warn(`Event creation validation failed: ${errors.join(", ")}`);
-            await this.showEventCreateForm(res, session, errors.join(", "), req.body);
+        const formValues = {
+            title,
+            description,
+            location,
+            category,
+            status,
+            capacity,
+            startDatetime,
+            endDatetime,
+            organizerId,
+        };
+
+        const errors = this.validateEventForm(formValues);
+        if (Object.keys(errors).length > 0) {
+            res.status(400).render("event/create", {
+                pageTitle: "Create Event",
+                session,
+                formValues,
+                errors,
+                pageError: null,
+            });
             return;
         }
 
@@ -221,9 +206,10 @@ class EventController implements IEventController {
         );
 
         if (!result.ok) {
-            const error = result.value;
-            this.logger.warn(`Event creation failed: ${error.message}`);
-            await this.showEventCreateForm(res, session, error.message, req.body);
+            res.status(400).render("partials/error", {
+                message: result.value.message,
+                layout: false,
+            });
             return;
         }
 
@@ -234,8 +220,9 @@ class EventController implements IEventController {
         res.render("event/create", {
             pageTitle: "Create Event",
             session: session,
-            pageError: pageError || null,
-            formData: formData || {},
+            formValues: {},
+            errors: {},
+            pageError: null,
         });
     }
 
@@ -272,7 +259,62 @@ class EventController implements IEventController {
             pageTitle: "Edit Event",
             event: result.value,
             session: session,
+            formValues: {},
+            errors: {},
         });
+    }
+
+    private validateEventForm(values: Record<string, any>) {
+        const errors: Record<string, string> = {};
+
+        if (!values.title?.trim()) {
+            errors.title = "Title is required.";
+        }
+
+        if (!values.description?.trim()) {
+            errors.description = "Description is required.";
+        }
+
+        if (!values.location?.trim()) {
+            errors.location = "Location is required.";
+        }
+
+        if (!values.category?.trim()) {
+            errors.category = "Category is required.";
+        }
+
+        if (!values.status?.trim()) {
+            errors.status = "Status is required.";
+        }
+
+        if (values.capacity !== undefined && values.capacity !== "") {
+            const parsed = Number(values.capacity);
+            if (Number.isNaN(parsed) || !Number.isInteger(parsed) || parsed < 0) {
+                errors.capacity = "Capacity must be a non-negative whole number.";
+            }
+        }
+
+        if (!values.startDatetime?.trim()) {
+            errors.startDatetime = "Start date and time are required.";
+        } else if (Number.isNaN(new Date(values.startDatetime).getTime())) {
+            errors.startDatetime = "Start date and time are invalid.";
+        }
+
+        if (!values.endDatetime?.trim()) {
+            errors.endDatetime = "End date and time are required.";
+        } else if (Number.isNaN(new Date(values.endDatetime).getTime())) {
+            errors.endDatetime = "End date and time are invalid.";
+        }
+
+        if (!errors.startDatetime && !errors.endDatetime) {
+            const start = new Date(values.startDatetime);
+            const end = new Date(values.endDatetime);
+            if (start >= end) {
+                errors.endDatetime = "End time must be after start time.";
+            }
+        }
+
+        return errors;
     }
 
     async editEvent(req: Request, res: Response) {
@@ -295,6 +337,41 @@ class EventController implements IEventController {
             startDatetime,
             endDatetime,
         } = req.body;
+
+        const formValues = {
+            title,
+            description,
+            location,
+            category,
+            status,
+            capacity,
+            startDatetime,
+            endDatetime,
+        };
+
+        const errors = this.validateEventForm(formValues);
+        if (Object.keys(errors).length > 0) {
+            const existingResult = await this.eventService.getEventById(eventId);
+            if (!existingResult.ok) {
+                res.status(404).render("partials/error", {
+                    message: existingResult.value.message,
+                    layout: false,
+                });
+                return;
+            }
+
+            res.status(400).render("event/edit", {
+                pageTitle: "Edit Event",
+                event: {
+                    ...existingResult.value,
+                    ...formValues,
+                },
+                session: (req as any).session,
+                formValues,
+                errors,
+            });
+            return;
+        }
 
         const parsedCapacity = capacity !== undefined && capacity !== "" ? Number(capacity) : null;
         const result = await this.eventService.updateEvent(
@@ -374,36 +451,79 @@ class EventController implements IEventController {
 
     
     async toggleRSVPFromForm(
+        req: Request,
         res: Response,
         eventId: number,
         userId: string,
         session: IAppBrowserSession,
     ): Promise<void> {
+        const eventResult = await this.eventService.getEventById(eventId);
 
-        // call service to handle RSVP logic
-        const result = await this.eventService.toggleRSVP(eventId, userId);
-
-        if (result.ok === false) {
-            // log error if something failed
-            this.logger.warn(`RSVP toggle failed: ${result.value}`);
-
-            // return small error partial for HTMX later
-            res.status(400).render("partials/error", {
-                message: result.value,
+        if (!eventResult.ok) {
+            res.status(404).render("partials/error", {
+                message: eventResult.value.message,
                 layout: false,
             });
             return;
         }
 
-        // log success
-        this.logger.info(`RSVP toggled: user ${userId}, event ${eventId}, status ${result.value}`);
+        const toggleResult = await this.eventService.toggleRSVP(eventId, userId);
 
-        // reload home page 
-        res.render("home", {
+        const rsvpsResult = await this.eventService.getRSVPsForEvent(eventId);
+        const currentRsvp =
+            rsvpsResult.ok
+                ? rsvpsResult.value.find((rsvp) => rsvp.userId === userId) ?? null
+                : null;
+
+        const isDashboardRequest =
+            req.body &&
+            typeof req.body.context === "string" &&
+            req.body.context === "dashboard";
+
+        if (toggleResult.ok === false) {
+            this.logger.warn(`RSVP toggle failed: ${toggleResult.value}`);
+
+            res.status(200).render("partials/rsvp-action", {
+                layout: false,
+                event: eventResult.value,
+                session,
+                currentRsvp,
+                errorMessage: toggleResult.value.message,
+            });
+            return;
+        }
+
+        this.logger.info(`RSVP toggled for user ${userId} on event ${eventId}`);
+
+        if (isDashboardRequest) {
+            const dashboardResult = await this.eventService.getUserDashboard(userId, session.authenticatedUser!.role);
+
+            if (!dashboardResult.ok) {
+                res.status(200).render("partials/error", {
+                    message: (dashboardResult.value as EventError).message,
+                    layout: false,
+                });
+                return;
+            }
+
+            res.render("partials/dashboard-sections", {
+                layout: false,
+                upcoming: dashboardResult.value.upcoming,
+                past: dashboardResult.value.past,
+                session,
+            });
+            return;
+        }
+
+        res.render("partials/rsvp-action", {
+            layout: false,
+            event: eventResult.value,
             session,
-            pageError: null,
+            currentRsvp,
+            errorMessage: null,
         });
     }
+
 
     async showRSVPDashboard(res: Response, session: IAppBrowserSession) {
         const user = session.authenticatedUser;
@@ -416,19 +536,13 @@ class EventController implements IEventController {
             return;
         }
 
-        if (user.role !== "user") {
-            res.status(403).render("partials/error", {
-                message: "Dashboard only available to members",
-                layout: false,
-            });
-            return;
-        }
-
-        const result = await this.eventService.getUserDashboard(user.userId);
+        const result = await this.eventService.getUserDashboard(user.userId, user.role);
 
         if (!result.ok) {
-            res.status(400).render("partials/error", {
-                message: result.value,
+            const status = (result.value as EventError).name === "DashboardAccessError" ? 403 : 400;
+
+            res.status(status).render("partials/error", {
+                message: (result.value as EventError).message,
                 layout: false,
             });
             return;

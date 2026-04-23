@@ -1,0 +1,25 @@
+<div id="dashboard-content">
+  <section class="mb-5 p-6 border rounded-2xl bg-white shadow">
+    <h2 class="text-xl font-semibold mb-3">Upcoming Events</h2>
+
+    <% if (upcoming.length === 0) { %>
+      <p>No upcoming RSVPs</p>
+    <% } %>
+
+    <% upcoming.forEach(item => { %>
+      <%- include("./dashboard-rsvp-row", { item, session }) %>
+    <% }) %>
+  </section>
+
+  <section class="p-6 border rounded-2xl bg-white shadow">
+    <h2 class="text-xl font-semibold mb-3">Past & Cancelled Events</h2>
+
+    <% if (past.length === 0) { %>
+      <p>No past or cancelled RSVPs</p>
+    <% } %>
+
+    <% past.forEach(item => { %>
+      <%- include("./dashboard-rsvp-row", { item, session }) %>
+    <% }) %>
+  </section>
+</div>

@@ -15,7 +15,7 @@ class RSVPRepository implements IRSVPRepository {
     private rsvps: IRSVP[] = []
     private nextId: number = 1;
 
-    create(eventId: number, userId: string, status?: string) {
+    create(eventId: number, userId: string, status?: RSVPStatus) {
         const rsvp = new RSVP(this.nextId++, eventId, userId, status as RSVPStatus | undefined);
         this.rsvps.push(rsvp);
         return Promise.resolve(Ok(undefined));
@@ -30,6 +30,9 @@ class RSVPRepository implements IRSVPRepository {
     }
     findByEventId(eventId: number){
         const rsvps = this.rsvps.filter(r => r.eventId === eventId);
+        if (rsvps.length === 0) {
+            return Promise.resolve(Err(EventNotFound('No RSVPs found for this event')));
+        }
         return Promise.resolve(Ok(rsvps));
     }
     update(id: number, status: RSVPStatus){

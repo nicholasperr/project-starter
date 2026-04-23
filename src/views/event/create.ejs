@@ -10,61 +10,68 @@
   <form action="/events" method="post" class="space-y-4">
     <label class="block">
       <span class="text-slate-700">Title</span>
-      <input type="text" name="title" class="mt-1 block w-full border rounded p-2" value="<%= formData.title || '' %>" required />
+      <input type="text" name="title" value="<%= formValues?.title ?? '' %>" class="mt-1 block w-full border rounded p-2" required />
+      <%- include('../partials/field-error', { message: errors?.title }) %>
     </label>
 
     <label class="block">
       <span class="text-slate-700">Description</span>
-      <textarea name="description" class="mt-1 block w-full border rounded p-2" rows="4" required><%= formData.description || '' %></textarea>
+      <textarea name="description" class="mt-1 block w-full border rounded p-2" rows="4" required><%= formValues?.description ?? '' %></textarea>
+      <%- include('../partials/field-error', { message: errors?.description }) %>
     </label>
 
     <label class="block">
       <span class="text-slate-700">Location</span>
-      <input type="text" name="location" class="mt-1 block w-full border rounded p-2" value="<%= formData.location || '' %>" required />
+      <input type="text" name="location" value="<%= formValues?.location ?? '' %>" class="mt-1 block w-full border rounded p-2" required />
+      <%- include('../partials/field-error', { message: errors?.location }) %>
     </label>
 
     <label class="block">
       <span class="text-slate-700">Category</span>
       <select name="category" class="mt-1 block w-full border rounded p-2" required>
-        <option value="" <% if (!formData.category) { %>selected<% } %>>Select a category</option>
-        <option value="music" <% if (formData.category === 'music') { %>selected<% } %>>music</option>
-        <option value="sports" <% if (formData.category === 'sports') { %>selected<% } %>>sports</option>
-        <option value="technology" <% if (formData.category === 'technology') { %>selected<% } %>>technology</option>
-        <option value="art" <% if (formData.category === 'art') { %>selected<% } %>>art</option>
-        <option value="education" <% if (formData.category === 'education') { %>selected<% } %>>education</option>
-        <option value="health" <% if (formData.category === 'health') { %>selected<% } %>>health</option>
-        <option value="business" <% if (formData.category === 'business') { %>selected<% } %>>business</option>
-        <option value="food" <% if (formData.category === 'food') { %>selected<% } %>>food</option>
-        <option value="other" <% if (formData.category === 'other') { %>selected<% } %>>other</option>
+        <option value="music" <%= (formValues?.category ?? '') === 'music' ? 'selected' : '' %>>music</option>
+        <option value="sports" <%= (formValues?.category ?? '') === 'sports' ? 'selected' : '' %>>sports</option>
+        <option value="technology" <%= (formValues?.category ?? '') === 'technology' ? 'selected' : '' %>>technology</option>
+        <option value="art" <%= (formValues?.category ?? '') === 'art' ? 'selected' : '' %>>art</option>
+        <option value="education" <%= (formValues?.category ?? '') === 'education' ? 'selected' : '' %>>education</option>
+        <option value="health" <%= (formValues?.category ?? '') === 'health' ? 'selected' : '' %>>health</option>
+        <option value="business" <%= (formValues?.category ?? '') === 'business' ? 'selected' : '' %>>business</option>
+        <option value="food" <%= (formValues?.category ?? '') === 'food' ? 'selected' : '' %>>food</option>
+        <option value="other" <%= (formValues?.category ?? '') === 'other' ? 'selected' : '' %>>other</option>
       </select>
+      <%- include('../partials/field-error', { message: errors?.category }) %>
     </label>
 
     <label class="block">
       <span class="text-slate-700">Status</span>
       <select name="status" class="mt-1 block w-full border rounded p-2">
-        <option value="draft" <% if (formData.status === 'draft') { %>selected<% } %>>draft</option>
-        <option value="published" <% if (formData.status === 'published') { %>selected<% } %>>published</option>
-        <option value="cancelled" <% if (formData.status === 'cancelled') { %>selected<% } %>>cancelled</option>
-        <option value="past" <% if (formData.status === 'past') { %>selected<% } %>>past</option>
+        <option value="draft" <%= (formValues?.status ?? '') === 'draft' ? 'selected' : '' %>>draft</option>
+        <option value="published" <%= (formValues?.status ?? '') === 'published' ? 'selected' : '' %>>published</option>
+        <option value="cancelled" <%= (formValues?.status ?? '') === 'cancelled' ? 'selected' : '' %>>cancelled</option>
+        <option value="past" <%= (formValues?.status ?? '') === 'past' ? 'selected' : '' %>>past</option>
       </select>
+      <%- include('../partials/field-error', { message: errors?.status }) %>
     </label>
 
     <label class="block">
       <span class="text-slate-700">Capacity</span>
-      <input type="number" name="capacity" class="mt-1 block w-full border rounded p-2" value="<%= formData.capacity || '' %>" />
+      <input type="number" name="capacity" value="<%= formValues?.capacity ?? '' %>" class="mt-1 block w-full border rounded p-2" />
+      <%- include('../partials/field-error', { message: errors?.capacity }) %>
     </label>
 
     <label class="block">
       <span class="text-slate-700">Start</span>
-      <input type="datetime-local" name="startDatetime" class="mt-1 block w-full border rounded p-2" value="<%= formData.startDatetime || '' %>" required />
+      <input type="datetime-local" name="startDatetime" value="<%= formValues?.startDatetime ?? '' %>" class="mt-1 block w-full border rounded p-2" required />
+      <%- include('../partials/field-error', { message: errors?.startDatetime }) %>
     </label>
 
     <label class="block">
       <span class="text-slate-700">End</span>
-      <input type="datetime-local" name="endDatetime" class="mt-1 block w-full border rounded p-2" value="<%= formData.endDatetime || '' %>" required />
+      <input type="datetime-local" name="endDatetime" value="<%= formValues?.endDatetime ?? '' %>" class="mt-1 block w-full border rounded p-2" required />
+      <%- include('../partials/field-error', { message: errors?.endDatetime }) %>
     </label>
 
-    <input type="hidden" name="organizerId" value="<%= session.authenticatedUser.userId %>" />
+    <input type="hidden" name="organizerId" value="<%= formValues?.organizerId ?? session.authenticatedUser.userId %>" />
 
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Create Event</button>
   </form>
