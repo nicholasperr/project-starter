@@ -25,12 +25,10 @@ class EventRepository implements IEventRepository {
     private nextId: number = 1;
 
     async create( title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number | null = null , startDatetime: Date, endDatetime: Date, organizerId: string): Promise<Result<undefined, EventError>> {
-    async create( title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number | null = null , startDatetime: Date, endDatetime: Date, organizerId: string): Promise<Result<undefined, EventError>> {
         const event = new Event(this.nextId++, title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId);
         this.events.push(event);
         return Promise.resolve(Ok(undefined));
     }
-    async findById(id: number): Promise<Result<IEvent, EventError>> {
     async findById(id: number): Promise<Result<IEvent, EventError>> {
         console.log(`Finding event by ID: ${id}`);
         const result = this.events.find(e => e.id === id);
@@ -48,14 +46,12 @@ class EventRepository implements IEventRepository {
         return Promise.resolve(Ok(undefined));
     }
     async delete(id: number): Promise<Result<undefined, EventError>> {
-    async delete(id: number): Promise<Result<undefined, EventError>> {
         this.events = this.events.filter(e => e.id !== id);
         return Promise.resolve(Ok(undefined));
     }
     async findAll(): Promise<Result<IEvent[], EventError>> {
         return Promise.resolve(Ok(this.events));
     }
-    async findFiltered(query: string, category?: Category, timeframe?: 'this_week'|'this_weekend' | 'all_upcoming'): Promise<Result<IEvent[], EventError>> {
     async findFiltered(query: string, category?: Category, timeframe?: 'this_week'|'this_weekend' | 'all_upcoming'): Promise<Result<IEvent[], EventError>> {
         const now = new Date();
         let filtered = this.events.filter(e => e.status === "published" && e.startDatetime > now);

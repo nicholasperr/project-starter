@@ -62,7 +62,7 @@ class EventController implements IEventController {
             user.role,
         );
 
-        if (!result.ok) {
+        if (result.ok === false) {
             res.status(404).render("partials/error", {
                 message: result.value.message,
                 layout: false,
@@ -352,7 +352,7 @@ class EventController implements IEventController {
         const errors = this.validateEventForm(formValues);
         if (Object.keys(errors).length > 0) {
             const existingResult = await this.eventService.getEventById(eventId);
-            if (!existingResult.ok) {
+            if (existingResult.ok === false) {
                 res.status(404).render("partials/error", {
                     message: existingResult.value.message,
                     layout: false,
@@ -459,7 +459,7 @@ class EventController implements IEventController {
     ): Promise<void> {
         const eventResult = await this.eventService.getEventById(eventId);
 
-        if (!eventResult.ok) {
+        if (eventResult.ok === false) {
             res.status(404).render("partials/error", {
                 message: eventResult.value.message,
                 layout: false,

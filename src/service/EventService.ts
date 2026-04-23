@@ -3,8 +3,7 @@ import { IRSVP, RSVPStatus } from "../model/rsvp";
 import { IEventRepository } from "../repository/EventRepository";
 import { IRSVPRepository } from "../repository/RSVPRepository";
 import { Ok, Err, type Result } from "../lib/result";
-import { EventError, EventNotFound, Unauthorized, InvalidInput, InvalidState } from "../lib/errors";
-import { DashboardAccessError, DashboardDataError, EventClosedError, EventNotFoundError, type EventError } from "./errors";
+import { EventError, EventNotFound, Unauthorized, InvalidInput, InvalidState, DashboardAccessError, DashboardDataError, EventClosedError } from "../lib/errors";
 
 export type EventTimeFrame = "all_upcoming" | "this_week" | "this_weekend";
 
@@ -19,7 +18,7 @@ export interface IEventService {
     getRSVPsForEvent(eventId: number): Promise<Result<IRSVP[],EventError>>;
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined,EventError>>;
     deleteRSVP(eventId: number, userId: string): Promise<Result<undefined,EventError>>;
-    getUserDashboard(userId: string): Promise<Result<{ upcoming: {rsvp: IRSVP, event: IEvent}[]; past: {rsvp: IRSVP, event: IEvent}[] }, EventError>>;
+    getUserDashboard(userId: string, role: string,): Promise<Result<{ upcoming: {rsvp: IRSVP, event: IEvent}[]; past: {rsvp: IRSVP, event: IEvent}[] }, EventError>>;
     getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, EventError>>;
     publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>>;
     cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>>;
@@ -91,8 +90,6 @@ class EventService implements IEventService {
 
         const isOwner = event.value.organizerId === userId;
         const isAdmin = role === "admin";
-        if (!isOwner && !isAdmin) return Err(EventNotFoundError("You are not allowed to publish this event"));
-
         if (!isOwner && !isAdmin) return Err(Unauthorized("You are not allowed to publish this event"));
 
         return await this.eventRepository.update(eventId, {status: "published"});
@@ -106,7 +103,6 @@ class EventService implements IEventService {
 
         const isOwner = event.value.organizerId === userId;
         const isAdmin = role === "admin";
-        if (!isOwner && !isAdmin) return Err(EventNotFoundError("You are not allowed to cancel this event"));
 
         if (!isOwner && !isAdmin) return Err(Unauthorized("You are not allowed to cancel this event"));
 
@@ -166,7 +162,7 @@ class EventService implements IEventService {
     async toggleRSVP(eventId: number, userId: string): Promise<Result<undefined, EventError>> {
         const eventResult = await this.eventRepository.findById(eventId);
         if (!eventResult.ok) {
-            return Err(EventNotFoundError((eventResult.value as EventError).message));
+            return Err(EventNotFound((eventResult.value as EventError).message));
         }
 
         const event = eventResult.value;
