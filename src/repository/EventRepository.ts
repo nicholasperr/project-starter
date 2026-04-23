@@ -88,7 +88,7 @@ class EventRepository implements IEventRepository {
 export function CreateEventRepository(): IEventRepository {
     const repo = new EventRepository();
 
-    repo.create("Campus Concert", "Live music performance on the quad featuring student bands", "Student Union Plaza", "music", "published", 200, new Date("2027-04-20T18:00:00"), new Date("2027-04-20T21:00:00"), "seed-user");
+    repo.create("Campus Concert", "Live music performance on the quad featuring student bands", "Student Union Plaza", "music", "published", 50, new Date("2027-04-20T18:00:00"), new Date("2027-04-20T21:00:00"), "seed-user");
     repo.create("Spring Basketball Tournament", "Intramural 3-on-3 basketball tournament open to all students", "Recreation Center", "sports", "published", 60, new Date("2027-04-19T10:00:00"), new Date("2027-04-19T16:00:00"), "seed-user");
     repo.create("CS Research Symposium", "Undergraduate and graduate students present their research projects", "Computer Science Building", "academic", "published", null, new Date("2027-04-25T13:00:00"), new Date("2027-04-25T17:00:00"), "seed-user");
     repo.create("Club Fair", "Meet student organizations and sign up for clubs across campus", "Campus Center", "social", "published", null, new Date("2027-04-22T11:00:00"), new Date("2027-04-22T14:00:00"), "seed-user");

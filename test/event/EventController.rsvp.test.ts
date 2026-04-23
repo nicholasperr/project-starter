@@ -1,5 +1,7 @@
 import request from "supertest";
 import { createComposedApp } from "../../src/composition";
+import { CreateEventRepository } from "../../src/repository/EventRepository";
+import { CreateRSVPRepository } from "../../src/repository/RSVPRepository";
 
 async function loginAsUser(agent: ReturnType<typeof request.agent>) {
     await agent
@@ -60,7 +62,16 @@ describe("RSVP HTTP Endpoint", () => {
   });
 
   it("returns an inline error when the event has already started", async () => {
-    const agent = request.agent(app);
+    const eventRepo = CreateEventRepository();
+    await eventRepo.update(1, {
+      startDatetime: new Date("2020-01-01T18:00:00"),
+      endDatetime: new Date("2020-01-01T21:00:00"),
+    });
+    
+    const rsvpRepo = CreateRSVPRepository();
+    const customApp = createComposedApp(undefined, eventRepo, rsvpRepo).getExpressApp();
+    
+    const agent = request.agent(customApp);
     await loginAsUser(agent);
 
     const res = await agent.post("/events/1/rsvp");

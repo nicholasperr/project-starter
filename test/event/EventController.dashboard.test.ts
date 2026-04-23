@@ -57,7 +57,7 @@ describe("My RSVPs Dashboard HTTP", () => {
 
     const dashboardBefore = await agent.get("/my-rsvps");
     expect(dashboardBefore.status).toBe(200);
-    expect(dashboardBefore.text).toContain("CS Research Symposium");
+    expect(dashboardBefore.text).toContain("Food Truck Festival");
 
     const res = await agent
       .post("/events/5/rsvp")
