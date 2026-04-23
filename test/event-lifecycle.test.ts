@@ -1,5 +1,5 @@
 import request from "supertest";
-import { createComposedApp } from "../composition";
+import { createComposedApp } from "../src/composition";
 
 describe("Feature 5 - Event Publishing and Cancellation", () => {
   let app: any;

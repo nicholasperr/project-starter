@@ -66,6 +66,7 @@ class EventController implements IEventController {
             return;
         }
 
+
         const result = await this.eventService.getVisibleEventById(
             eventId,
             user.userId,
@@ -73,16 +74,15 @@ class EventController implements IEventController {
         );
 
         if (!result.ok) {
-            const error = result.value;
+            const error = result.value as EventError;
 
-            const status =
-                error.name === "EventNotFoundError" ? 404 : 403;
-
-            res.status(status).render("partials/error", {
+            res.status(404).render("partials/error", {
                 message: error.message,
                 layout: false,
             });
             return;
+
+            
 }
         res.render("event/show", {
             session,
@@ -128,7 +128,7 @@ async publishEventFromForm(req: Request, res: Response, session: IAppBrowserSess
     if (!refreshed.ok) {
         const status = this.mapEventErrorStatus(refreshed.value as EventError);
         res.status(status).render("partials/error", {
-            message: refreshed.value.message,
+            message: (refreshed.value as EventError).message,
             layout: false,
         });
         return;
@@ -183,7 +183,7 @@ async cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSessi
     if (!refreshed.ok) {
         const status = this.mapEventErrorStatus(refreshed.value as EventError);
         res.status(status).render("partials/error", {
-            message: refreshed.value.message,
+            message: (refreshed.value as EventError).message,
             layout: false,
         });
         return;
