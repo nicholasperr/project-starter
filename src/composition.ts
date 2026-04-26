@@ -13,7 +13,6 @@ import { CreateRSVPRepository, IRSVPRepository } from "./repository/RSVPReposito
 
 import { CreateLoggingService, ILoggingService } from "./service/LoggingService";
 import { CreateEventService } from "./service/EventService";
-import prisma from "./prisma";
 
 export function createComposedApp(logger?: ILoggingService, eventRepository?: IEventRepository, rsvpRepository?: IRSVPRepository): IApp {
   const resolvedLogger = logger ?? CreateLoggingService();
