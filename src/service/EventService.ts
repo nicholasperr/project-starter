@@ -223,28 +223,19 @@ class EventService implements IEventService {
             return Err(DashboardAccessError("Dashboard only available to members"));
         }
 
-        const allRSVPs = await this.rsvpRepository.findAll();
-        if (!allRSVPs.ok) {
-            return Err(DashboardDataError((allRSVPs.value as EventError).message));
+        const dashboardItems = await this.rsvpRepository.findByUserIdWithEvents(userId);
+
+        if (!dashboardItems.ok) {
+            return Err(DashboardDataError((dashboardItems.value as EventError).message));
         }
 
-        const userRSVPs = allRSVPs.value.filter((rsvp) => rsvp.userId === userId);
-
-        const joined = await Promise.all(
-            userRSVPs.map(async (rsvp) => {
-                const event = await this.eventRepository.findById(rsvp.eventId);
-                if (!event.ok) return { rsvp, event: null };
-                return { rsvp, event: event.value };
-            })
-        );
-
-        const filtered = joined.filter((v) => v.event != null) as { rsvp: IRSVP; event: IEvent }[];
         const now = new Date();
         const upcoming: { rsvp: IRSVP; event: IEvent }[] = [];
         const past: { rsvp: IRSVP; event: IEvent }[] = [];
 
-        for (const item of filtered) {
+        for (const item of dashboardItems.value) {
             const event = item.event;
+
             if (
                 event.status === "cancelled" ||
                 event.status === "past" ||

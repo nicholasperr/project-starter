@@ -1,57 +1,214 @@
+import { PrismaClient } from "@prisma/client";
 import { Err, Ok, Result } from "../lib/result";
+import { IEvent, Event, Category, EventStatus } from "../model/event";
 import { IRSVP, RSVP, RSVPStatus } from "../model/rsvp";
-import { EventError, EventNotFound } from "../lib/errors";
+import { DatabaseError, EventError, EventNotFound } from "../lib/errors";
+import prisma from "../prisma";
+
+export type DashboardRSVPItem = {
+    rsvp: IRSVP;
+    event: IEvent;
+};
 
 export interface IRSVPRepository {
     create(eventId: number, userId: string, status: string): Promise<Result<undefined, EventError>>;
-    findByIds(userid: string, eventId: number): Promise<Result<IRSVP,EventError>>;
-    findByEventId(eventId: number): Promise<Result<IRSVP[],EventError>>;
-    update(id: number, status: string): Promise<Result<undefined,EventError>>;
-    delete(id: number): Promise<Result<undefined,EventError>>;
-    findAll(): Promise<Result<IRSVP[],EventError>>;
+    findByIds(userId: string, eventId: number): Promise<Result<IRSVP, EventError>>;
+    findByEventId(eventId: number): Promise<Result<IRSVP[], EventError>>;
+    findByUserIdWithEvents(userId: string): Promise<Result<DashboardRSVPItem[], EventError>>;
+    update(id: number, status: string): Promise<Result<undefined, EventError>>;
+    delete(id: number): Promise<Result<undefined, EventError>>;
+    findAll(): Promise<Result<IRSVP[], EventError>>;
 }
 
+type PrismaRSVPRecord = {
+    id: number;
+    eventId: number;
+    userId: string;
+    status: string;
+    createdAt: Date;
+};
+
+type PrismaEventRecord = {
+    id: number;
+    title: string;
+    description: string;
+    location: string;
+    category: string;
+    status: string;
+    capacity: number | null;
+    startDatetime: Date;
+    endDatetime: Date;
+    organizerId: string;
+    createdAt: Date;
+    updatedAt: Date;
+};
+
 class RSVPRepository implements IRSVPRepository {
-    private rsvps: IRSVP[] = []
-    private nextId: number = 1;
+    constructor(private readonly prisma: PrismaClient) {}
 
-    create(eventId: number, userId: string, status?: RSVPStatus) {
-        const rsvp = new RSVP(this.nextId++, eventId, userId, status as RSVPStatus | undefined);
-        this.rsvps.push(rsvp);
-        return Promise.resolve(Ok(undefined));
-    }
-    findByIds(userId: string, eventId: number) {
-        const rsvp = this.rsvps.find(r => r.userId === userId && eventId === r.eventId) || null;
-        if (rsvp === null) {
-            return Promise.resolve(Err(EventNotFound('RSVP not found')));
-        }
-        return Promise.resolve(Ok(rsvp));
+    private toRSVP(record: PrismaRSVPRecord): IRSVP {
+        const rsvp = new RSVP(
+            record.id,
+            record.eventId,
+            record.userId,
+            record.status as RSVPStatus,
+        );
 
+        rsvp.createdAt = record.createdAt;
+        return rsvp;
     }
-    findByEventId(eventId: number){
-        const rsvps = this.rsvps.filter(r => r.eventId === eventId);
-        if (rsvps.length === 0) {
-            return Promise.resolve(Err(EventNotFound('No RSVPs found for this event')));
+
+    private toEvent(record: PrismaEventRecord): IEvent {
+        const event = new Event(
+            record.id,
+            record.title,
+            record.description,
+            record.location,
+            record.category as Category,
+            record.status as EventStatus,
+            record.capacity,
+            record.startDatetime,
+            record.endDatetime,
+            record.organizerId,
+        );
+
+        event.createdAt = record.createdAt;
+        event.updatedAt = record.updatedAt;
+        return event;
+    }
+
+    async create(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined, EventError>> {
+        try {
+            await this.prisma.rSVP.create({
+                data: {
+                    eventId,
+                    userId,
+                    status,
+                },
+            });
+
+            return Ok(undefined);
+        } catch (error) {
+            console.error("Error creating RSVP:", error);
+            return Err(DatabaseError("Failed to create RSVP"));
         }
-        return Promise.resolve(Ok(rsvps));
     }
-    update(id: number, status: RSVPStatus){
-        const rsvp = this.rsvps.find(r => r.id === id);
-        if (rsvp === undefined) {
-            return Promise.resolve(Err(EventNotFound('RSVP not found')));
+
+    async findByIds(userId: string, eventId: number): Promise<Result<IRSVP, EventError>> {
+        try {
+            const rsvp = await this.prisma.rSVP.findUnique({
+                where: {
+                    eventId_userId: {
+                        eventId,
+                        userId,
+                    },
+                },
+            });
+
+            if (!rsvp) {
+                return Err(EventNotFound("RSVP not found"));
+            }
+
+            return Ok(this.toRSVP(rsvp));
+        } catch (error) {
+            console.error("Error finding RSVP:", error);
+            return Err(DatabaseError("Failed to retrieve RSVP"));
         }
-        rsvp.updateEvent(status);
-        return Promise.resolve(Ok(undefined));
     }
-    delete(id: number){
-        this.rsvps = this.rsvps.filter(r => r.id !== id);
-        return Promise.resolve(Ok(undefined));
+
+    async findByEventId(eventId: number): Promise<Result<IRSVP[], EventError>> {
+        try {
+            const rsvps = await this.prisma.rSVP.findMany({
+                where: {
+                    eventId,
+                },
+                orderBy: {
+                    createdAt: "asc",
+                },
+            });
+
+            return Ok(rsvps.map((rsvp) => this.toRSVP(rsvp)));
+        } catch (error) {
+            console.error("Error finding RSVPs for event:", error);
+            return Err(DatabaseError("Failed to retrieve RSVPs"));
+        }
     }
-    findAll(){
-        return Promise.resolve(Ok(this.rsvps));
+
+    async findByUserIdWithEvents(userId: string): Promise<Result<DashboardRSVPItem[], EventError>> {
+        try {
+            const rsvps = await this.prisma.rSVP.findMany({
+                where: {
+                    userId,
+                },
+                include: {
+                    event: true,
+                },
+                orderBy: {
+                    createdAt: "asc",
+                },
+            });
+
+            const items = rsvps.map((record) => ({
+                rsvp: this.toRSVP(record),
+                event: this.toEvent(record.event),
+            }));
+
+            return Ok(items);
+        } catch (error) {
+            console.error("Error finding dashboard RSVPs:", error);
+            return Err(DatabaseError("Failed to retrieve dashboard RSVPs"));
+        }
+    }
+
+    async update(id: number, status: RSVPStatus): Promise<Result<undefined, EventError>> {
+        try {
+            await this.prisma.rSVP.update({
+                where: {
+                    id,
+                },
+                data: {
+                    status,
+                },
+            });
+
+            return Ok(undefined);
+        } catch (error) {
+            console.error("Error updating RSVP:", error);
+            return Err(DatabaseError("Failed to update RSVP"));
+        }
+    }
+
+    async delete(id: number): Promise<Result<undefined, EventError>> {
+        try {
+            await this.prisma.rSVP.delete({
+                where: {
+                    id,
+                },
+            });
+
+            return Ok(undefined);
+        } catch (error) {
+            console.error("Error deleting RSVP:", error);
+            return Err(DatabaseError("Failed to delete RSVP"));
+        }
+    }
+
+    async findAll(): Promise<Result<IRSVP[], EventError>> {
+        try {
+            const rsvps = await this.prisma.rSVP.findMany({
+                orderBy: {
+                    createdAt: "asc",
+                },
+            });
+
+            return Ok(rsvps.map((rsvp) => this.toRSVP(rsvp)));
+        } catch (error) {
+            console.error("Error finding all RSVPs:", error);
+            return Err(DatabaseError("Failed to retrieve RSVPs"));
+        }
     }
 }
 
 export function CreateRSVPRepository(): IRSVPRepository {
-    return new RSVPRepository();
+    return new RSVPRepository(prisma);
 }
