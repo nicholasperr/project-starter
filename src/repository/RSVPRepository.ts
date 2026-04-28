@@ -96,12 +96,10 @@ class RSVPRepository implements IRSVPRepository {
 
     async findByIds(userId: string, eventId: number): Promise<Result<IRSVP, EventError>> {
         try {
-            const rsvp = await this.prisma.rSVP.findUnique({
+            const rsvp = await this.prisma.rSVP.findFirst({
                 where: {
-                    eventId_userId: {
                         eventId,
                         userId,
-                    },
                 },
             });
 

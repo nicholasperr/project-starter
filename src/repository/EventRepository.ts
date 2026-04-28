@@ -71,7 +71,7 @@ class EventRepository implements IEventRepository {
         organizerId: string,
     ): Promise<Result<undefined, EventError>> {
         try {
-            await this.prisma.event.create({
+            const event = await this.prisma.event.create({
                 data: {
                     title,
                     description,
@@ -84,6 +84,7 @@ class EventRepository implements IEventRepository {
                     organizerId,
                 },
             });
+            console.log("Created event:", event.id);
             return Ok(undefined);
         } catch (error) {
             console.error("Error creating event:", error);
