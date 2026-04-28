@@ -19,6 +19,7 @@ model Event {
   organizerId   String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  
   rsvps         RSVP[]
 }
 
@@ -28,5 +29,9 @@ model RSVP {
   userId        String
   status        String   @default("waitlisted")
   createdAt     DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   event         Event    @relation(fields: [eventId], references: [id])
+
+  @@unique([eventId, userId]) 
 }
