@@ -1,6 +1,5 @@
 import request from "supertest";
 import prisma from "../../src/prisma";
-import prisma from "../../src/prisma";
 import { createComposedApp } from "../../src/composition";
 
 async function resetDatabase() {

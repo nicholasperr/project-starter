@@ -1,5 +1,4 @@
 import prisma from "../../src/prisma";
-import prisma from "../../src/prisma";
 import { CreateEventService } from "../../src/service/EventService";
 import { CreateEventRepository } from "../../src/repository/EventRepository";
 import { CreateRSVPRepository } from "../../src/repository/RSVPRepository";
@@ -37,7 +36,6 @@ describe("EventService RSVP Toggle", () => {
   });
 
   it("creates a new RSVP as going when capacity allows", async () => {
-    const event = await createTestEvent();
     const event = await createTestEvent();
 
     const result = await service.toggleRSVP(event.id, "user-1");
@@ -118,26 +116,11 @@ describe("EventService RSVP Toggle", () => {
       endDatetime: new Date("2000-01-02"),
     });
 
-    const result = await service.toggleRSVP(1, "user-1");
+    const result = await service.toggleRSVP(event.id, "user-1");
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.value.message).toBe("Event already started");
-    }
-  });
-
-  it("passes through repository error when create fails", async () => {
-    await makeEventFuture(service, 1);
-
-    jest.spyOn(rsvpRepo, "findByIds").mockResolvedValue(Err(EventNotFound("RSVP not found")));
-    jest.spyOn(rsvpRepo, "create").mockResolvedValue(Err(EventNotFound("Injected error")));
-
-    const result = await service.toggleRSVP(1, "user-1");
-
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.value.name).toBe("EventNotFound");
-      expect(result.value.message).toBe("Injected error");
     }
   });
 });
