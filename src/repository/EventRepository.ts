@@ -71,7 +71,7 @@ class EventRepository implements IEventRepository {
         organizerId: string,
     ): Promise<Result<undefined, EventError>> {
         try {
-            await this.prisma.event.create({
+            const event = await this.prisma.event.create({
                 data: {
                     title,
                     description,
@@ -84,6 +84,7 @@ class EventRepository implements IEventRepository {
                     organizerId,
                 },
             });
+            console.log("Created event:", event.id);
             return Ok(undefined);
         } catch (error) {
             console.error("Error creating event:", error);
@@ -120,42 +121,62 @@ class EventRepository implements IEventRepository {
 
 
     async delete(id: number): Promise<Result<undefined, EventError>> {
-        this.events = this.events.filter(e => e.id !== id);
-        return Promise.resolve(Ok(undefined));
+        try {
+            await this.prisma.event.delete({ where: { id } });
+            return Ok(undefined);
+        } catch (error) {
+            return Err(DatabaseError("Failed to delete event."));
+        }
     }
     async findAll(): Promise<Result<IEvent[], EventError>> {
-        return Promise.resolve(Ok(this.events));
+        try {
+            const events = await this.prisma.event.findMany();
+            return Ok(events.map(e => this.toEvent(e as PrismaEventRecord)));
+        } catch (error) {
+            return Err(DatabaseError("Failed to retrieve events."));
+        }
     }
     async findFiltered(query: string, category?: Category, timeframe?: 'this_week'|'this_weekend' | 'all_upcoming'): Promise<Result<IEvent[], EventError>> {
-        const now = new Date();
-        let filtered = this.events.filter(e => e.status === "published" && e.startDatetime > now);
-        
-        if (query != '') {
-            const lowerQuery = query.toLowerCase();
-            filtered = filtered.filter(e => e.title.toLowerCase().includes(lowerQuery) || 
-                                            e.description.toLowerCase().includes(lowerQuery));
-        }
-
-        if (category) {
-            filtered = filtered.filter(e => e.category === category);
-        }
-
-        if (timeframe) {
+        try {
             const now = new Date();
-            const endOfWeek = new Date(now);
-            endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
-            const endOfWeekend = new Date(endOfWeek);
-            endOfWeekend.setDate(endOfWeek.getDate() + 2);
+            const where: any = {
+                status: "published",
+                startDatetime: { gt: now }
+            };
 
-            if (timeframe === 'this_week') {
-                filtered = filtered.filter(e => e.startDatetime <= endOfWeek);
-            } else if (timeframe === 'this_weekend') {
-                filtered = filtered.filter(e => e.startDatetime >= endOfWeek && e.startDatetime <= endOfWeekend);
+            if (query !== "") {
+                where.OR = [
+                    { title: { contains: query } },
+                    { description: { contains: query } },
+                    { location: { contains: query } },
+                ];
             }
-            // all_upcoming is already filtered
-        }
 
-        return Promise.resolve(Ok(filtered));
+            if (category) { where.category = category; }
+
+            if (timeframe === "this_week") {
+                const weekEnd = new Date(now);
+                weekEnd.setDate(now.getDate() + (7 - now.getDay()));
+                where.startDatetime = { gte: now, lte: weekEnd };
+            }
+
+            if (timeframe === "this_weekend") {
+                const friday = new Date(now);
+                const sunday = new Date(now);
+                friday.setDate(now.getDate() + (5 - now.getDay()));
+                sunday.setDate(friday.getDate() + 2);
+                where.startDatetime = { gte: friday, lte: sunday };
+            }
+
+            if (timeframe === "all_upcoming") {
+                where.startDatetime = { gte: now };
+            }
+
+            const events = await this.prisma.event.findMany({ where });
+            return Ok(events.map(e => this.toEvent(e as PrismaEventRecord)));
+        } catch (error) {
+            return Err(DatabaseError("Failed to filter events."));
+        }
     }
 }
 

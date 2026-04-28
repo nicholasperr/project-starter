@@ -1,6 +1,8 @@
 import { CreateEventService } from "../../src/service/EventService";
 import { CreateEventRepository } from "../../src/repository/EventRepository"; 
 import { CreateRSVPRepository } from "../../src/repository/RSVPRepository";
+import "dotenv/config";
+
 
 describe("EventService", () => {
     let eventService: ReturnType<typeof CreateEventService>;
