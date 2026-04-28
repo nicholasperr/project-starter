@@ -106,57 +106,110 @@ class EventRepository implements IEventRepository {
 
     async update(id: number, params: UpdateEventParams): Promise<Result<undefined, EventError>> {
         try {
-            await this.prisma.event.update({ where: { id }, data: params });
+            await this.prisma.event.update({
+                where: { id },
+                data: params,
+            });
+
             return Ok(undefined);
-        } catch (error) {
-            console.error("Error updating event:", error);
-            return Err(DatabaseError('Failed to update event'));
+        } catch (error: any) {
+            if (error?.code === "P2025") {
+                return Err(EventNotFound("Event not found"));
+            }
+
+            return Err(DatabaseError("Failed to update event"));
         }
     }
-
-
-
-
 
 
     async delete(id: number): Promise<Result<undefined, EventError>> {
-        this.events = this.events.filter(e => e.id !== id);
-        return Promise.resolve(Ok(undefined));
-    }
-    async findAll(): Promise<Result<IEvent[], EventError>> {
-        return Promise.resolve(Ok(this.events));
-    }
-    async findFiltered(query: string, category?: Category, timeframe?: 'this_week'|'this_weekend' | 'all_upcoming'): Promise<Result<IEvent[], EventError>> {
-        const now = new Date();
-        let filtered = this.events.filter(e => e.status === "published" && e.startDatetime > now);
-        
-        if (query != '') {
-            const lowerQuery = query.toLowerCase();
-            filtered = filtered.filter(e => e.title.toLowerCase().includes(lowerQuery) || 
-                                            e.description.toLowerCase().includes(lowerQuery));
-        }
+        try {
+            await this.prisma.event.delete({
+                where: { id },
+            });
 
-        if (category) {
-            filtered = filtered.filter(e => e.category === category);
-        }
-
-        if (timeframe) {
-            const now = new Date();
-            const endOfWeek = new Date(now);
-            endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
-            const endOfWeekend = new Date(endOfWeek);
-            endOfWeekend.setDate(endOfWeek.getDate() + 2);
-
-            if (timeframe === 'this_week') {
-                filtered = filtered.filter(e => e.startDatetime <= endOfWeek);
-            } else if (timeframe === 'this_weekend') {
-                filtered = filtered.filter(e => e.startDatetime >= endOfWeek && e.startDatetime <= endOfWeekend);
+            return Ok(undefined);
+        } catch (error: any) {
+            if (error?.code === "P2025") {
+                return Err(EventNotFound("Event not found"));
             }
-            // all_upcoming is already filtered
-        }
 
-        return Promise.resolve(Ok(filtered));
+            return Err(DatabaseError("Failed to delete event"));
+        }
     }
+
+    async findAll(): Promise<Result<IEvent[], EventError>> {
+        try {
+            const events = await this.prisma.event.findMany({
+                orderBy: { startDatetime: "asc" },
+            });
+
+            return Ok(events.map((e) => this.toEvent(e as PrismaEventRecord)));
+        } catch (error) {
+            return Err(DatabaseError("Failed to retrieve events"));
+        }
+    }
+
+    async findFiltered(
+        query: string,
+        category?: Category,
+        timeframe?: "this_week" | "this_weekend" | "all_upcoming"
+    ): Promise<Result<IEvent[], EventError>> {
+        try {
+            const now = new Date();
+
+            const events = await this.prisma.event.findMany({
+                where: {
+                    status: "published",
+                    startDatetime: {
+                        gt: now,
+                    },
+                },
+                orderBy: {
+                    startDatetime: "asc",
+                },
+            });
+
+            let filtered = events.map((e) => this.toEvent(e as PrismaEventRecord));
+
+            if (query.trim() !== "") {
+                const q = query.toLowerCase();
+
+                filtered = filtered.filter(
+                    (e) =>
+                        e.title.toLowerCase().includes(q) ||
+                        e.description.toLowerCase().includes(q) ||
+                        e.location.toLowerCase().includes(q)
+                );
+            }
+
+            if (category) {
+                filtered = filtered.filter((e) => e.category === category);
+            }
+
+            if (timeframe === "this_week") {
+                const end = new Date(now);
+                end.setDate(now.getDate() + 7);
+
+                filtered = filtered.filter(
+                    (e) => e.startDatetime >= now && e.startDatetime <= end
+                );
+            }
+
+            if (timeframe === "this_weekend") {
+                filtered = filtered.filter((e) => {
+                    const day = e.startDatetime.getDay();
+                    return day === 5 || day === 6 || day === 0;
+                });
+            }
+
+            return Ok(filtered);
+        } catch (error) {
+            return Err(DatabaseError("Failed to retrieve events"));
+        }
+    }
+
+
 }
 
 export function CreateEventRepository(): IEventRepository {
