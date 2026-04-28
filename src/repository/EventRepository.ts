@@ -1,6 +1,11 @@
 import { Ok, Result, Err } from "../lib/result";
 import { IEvent, Event, UpdateEventParams, EventStatus, Category } from "../model/event";
-import { EventError, EventNotFound } from "../lib/errors";
+import { EventError, EventNotFound, InvalidInput } from "../lib/errors";
+import { PrismaClient } from "@prisma/client";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+
+const adapter = new PrismaBetterSqlite3({ url: "./dev.db" });
+const prisma = new PrismaClient({ adapter });
 
 export interface IEventRepository {
     create(
@@ -46,42 +51,65 @@ class EventRepository implements IEventRepository {
         return Promise.resolve(Ok(undefined));
     }
     async delete(id: number): Promise<Result<undefined, EventError>> {
-        this.events = this.events.filter(e => e.id !== id);
-        return Promise.resolve(Ok(undefined));
+        try {
+            await prisma.event.delete({ where: { id } });
+            return Ok(undefined);
+        } catch (error) {
+            return Err(InvalidInput("Failed to delete event."));
+        }
     }
     async findAll(): Promise<Result<IEvent[], EventError>> {
-        return Promise.resolve(Ok(this.events));
+        try {
+            const events = await prisma.event.findMany();
+            return Ok(events.map(e => new Event(e.id, e.title, e.description, e.location,
+                e.category as Category, e.status as EventStatus, e.capacity, e.startDatetime, e.endDatetime, e.organizerId)));
+            
+        } catch (error) {
+            return Err(InvalidInput("Failed to retrieve events."));
+        }
     }
     async findFiltered(query: string, category?: Category, timeframe?: 'this_week'|'this_weekend' | 'all_upcoming'): Promise<Result<IEvent[], EventError>> {
-        const now = new Date();
-        let filtered = this.events.filter(e => e.status === "published" && e.startDatetime > now);
-        
-        if (query != '') {
-            const lowerQuery = query.toLowerCase();
-            filtered = filtered.filter(e => e.title.toLowerCase().includes(lowerQuery) || 
-                                            e.description.toLowerCase().includes(lowerQuery));
-        }
-
-        if (category) {
-            filtered = filtered.filter(e => e.category === category);
-        }
-
-        if (timeframe) {
+        try {
             const now = new Date();
-            const endOfWeek = new Date(now);
-            endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
-            const endOfWeekend = new Date(endOfWeek);
-            endOfWeekend.setDate(endOfWeek.getDate() + 2);
+            const where: any = {
+                status: "published",
+                startDatetime: { gt: now }
+            };
 
-            if (timeframe === 'this_week') {
-                filtered = filtered.filter(e => e.startDatetime <= endOfWeek);
-            } else if (timeframe === 'this_weekend') {
-                filtered = filtered.filter(e => e.startDatetime >= endOfWeek && e.startDatetime <= endOfWeekend);
+            if (query !== "") {
+                where.OR = [
+                    { title: { contains: query } },
+                    { description: { contains: query } },
+                    { location: { contains: query } },
+                ];
             }
-            // all_upcoming is already filtered
-        }
 
-        return Promise.resolve(Ok(filtered));
+            if (category) { where.category = category; }
+
+            if (timeframe === "this_week") {
+                const weekEnd = new Date(now);
+                weekEnd.setDate(now.getDate() + (7 - now.getDay()));
+                where.startDatetime = { gte: now, lte: weekEnd };
+            }
+
+            if (timeframe === "this_weekend") {
+                const friday = new Date(now);
+                const sunday = new Date(now);
+                friday.setDate(now.getDate() + (5 - now.getDay()));
+                sunday.setDate(friday.getDate() + 2);
+                where.startDatetime = { gte: friday, lte: sunday };
+            }
+
+            if (timeframe === "all_upcoming") {
+                where.startDatetime = { gte: now };
+            }
+
+            const events = await prisma.event.findMany({ where });
+            return Ok(events.map(e => new Event(e.id, e.title, e.description, e.location,
+                e.category as Category, e.status as EventStatus, e.capacity, e.startDatetime, e.endDatetime, e.organizerId)));
+        }  catch (error) {
+            return Err(InvalidInput("Failed to filter events."));
+        }
     }
 }
 
