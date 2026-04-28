@@ -71,7 +71,7 @@ class EventRepository implements IEventRepository {
         organizerId: string,
     ): Promise<Result<undefined, EventError>> {
         try {
-            await this.prisma.event.create({
+            const event = await this.prisma.event.create({
                 data: {
                     title,
                     description,
@@ -84,6 +84,7 @@ class EventRepository implements IEventRepository {
                     organizerId,
                 },
             });
+            console.log("Created event:", event.id);
             return Ok(undefined);
         } catch (error) {
             console.error("Error creating event:", error);
@@ -140,76 +141,54 @@ class EventRepository implements IEventRepository {
 
     async findAll(): Promise<Result<IEvent[], EventError>> {
         try {
-            const events = await this.prisma.event.findMany({
-                orderBy: { startDatetime: "asc" },
-            });
-
-            return Ok(events.map((e) => this.toEvent(e as PrismaEventRecord)));
+            const events = await this.prisma.event.findMany();
+            return Ok(events.map(e => this.toEvent(e as PrismaEventRecord)));
         } catch (error) {
-            return Err(DatabaseError("Failed to retrieve events"));
+            return Err(DatabaseError("Failed to retrieve events."));
         }
     }
-
-    async findFiltered(
-        query: string,
-        category?: Category,
-        timeframe?: "this_week" | "this_weekend" | "all_upcoming"
-    ): Promise<Result<IEvent[], EventError>> {
+    async findFiltered(query: string, category?: Category, timeframe?: 'this_week'|'this_weekend' | 'all_upcoming'): Promise<Result<IEvent[], EventError>> {
         try {
             const now = new Date();
+            const where: any = {
+                status: "published",
+                startDatetime: { gt: now }
+            };
 
-            const events = await this.prisma.event.findMany({
-                where: {
-                    status: "published",
-                    startDatetime: {
-                        gt: now,
-                    },
-                },
-                orderBy: {
-                    startDatetime: "asc",
-                },
-            });
-
-            let filtered = events.map((e) => this.toEvent(e as PrismaEventRecord));
-
-            if (query.trim() !== "") {
-                const q = query.toLowerCase();
-
-                filtered = filtered.filter(
-                    (e) =>
-                        e.title.toLowerCase().includes(q) ||
-                        e.description.toLowerCase().includes(q) ||
-                        e.location.toLowerCase().includes(q)
-                );
+            if (query !== "") {
+                where.OR = [
+                    { title: { contains: query } },
+                    { description: { contains: query } },
+                    { location: { contains: query } },
+                ];
             }
 
-            if (category) {
-                filtered = filtered.filter((e) => e.category === category);
-            }
+            if (category) { where.category = category; }
 
             if (timeframe === "this_week") {
-                const end = new Date(now);
-                end.setDate(now.getDate() + 7);
-
-                filtered = filtered.filter(
-                    (e) => e.startDatetime >= now && e.startDatetime <= end
-                );
+                const weekEnd = new Date(now);
+                weekEnd.setDate(now.getDate() + (7 - now.getDay()));
+                where.startDatetime = { gte: now, lte: weekEnd };
             }
 
             if (timeframe === "this_weekend") {
-                filtered = filtered.filter((e) => {
-                    const day = e.startDatetime.getDay();
-                    return day === 5 || day === 6 || day === 0;
-                });
+                const friday = new Date(now);
+                const sunday = new Date(now);
+                friday.setDate(now.getDate() + (5 - now.getDay()));
+                sunday.setDate(friday.getDate() + 2);
+                where.startDatetime = { gte: friday, lte: sunday };
             }
 
-            return Ok(filtered);
+            if (timeframe === "all_upcoming") {
+                where.startDatetime = { gte: now };
+            }
+
+            const events = await this.prisma.event.findMany({ where });
+            return Ok(events.map(e => this.toEvent(e as PrismaEventRecord)));
         } catch (error) {
-            return Err(DatabaseError("Failed to retrieve events"));
+            return Err(DatabaseError("Failed to filter events."));
         }
     }
-
-
 }
 
 export function CreateEventRepository(): IEventRepository {

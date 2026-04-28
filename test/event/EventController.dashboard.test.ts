@@ -7,21 +7,44 @@ async function resetDatabase() {
   await prisma.event.deleteMany();
 }
 
-async function createTestEvent() {
+async function createTestEvent(overrides = {}) {
   return await prisma.event.create({
     data: {
       title: "Food Truck Festival",
-      description: "Test",
-      location: "Campus",
+      description: "dashboard controller test event",
+      location: "Campus Center",
       category: "food",
       status: "published",
       capacity: 50,
-      startDatetime: new Date("2100-01-01"),
-      endDatetime: new Date("2100-01-02"),
+      startDatetime: new Date("2100-01-01T12:00:00"),
+      endDatetime: new Date("2100-01-01T14:00:00"),
       organizerId: "user-staff",
+      ...overrides,
     },
   });
 }
+async function loginAsUser(agent: ReturnType<typeof request.agent>) {
+  await agent
+    .post("/login")
+    .type("form")
+    .send({ email: "user@app.test", password: "password123" })
+    .expect(302);
+
+  await agent.get("/").expect(302);
+}
+
+async function loginAsStaff(agent: ReturnType<typeof request.agent>) {
+  await agent
+    .post("/login")
+    .type("form")
+    .send({ email: "staff@app.test", password: "password123" })
+    .expect(302);
+
+  await agent.get("/").expect(302);
+}
+
+
+
 
 describe("Dashboard", () => {
   let app: any;

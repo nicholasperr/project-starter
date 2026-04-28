@@ -2,6 +2,8 @@ import prisma from "../../src/prisma";
 import { CreateEventService } from "../../src/service/EventService";
 import { CreateEventRepository } from "../../src/repository/EventRepository";
 import { CreateRSVPRepository } from "../../src/repository/RSVPRepository";
+import "dotenv/config";
+
 
 async function resetDatabase() {
     await prisma.rSVP.deleteMany();
