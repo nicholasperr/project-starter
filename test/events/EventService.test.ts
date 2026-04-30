@@ -1,10 +1,49 @@
+import prisma from "../../src/prisma";
 import { CreateEventService } from "../../src/service/EventService";
-import { CreateEventRepository } from "../../src/repository/EventRepository"; 
+import { CreateEventRepository } from "../../src/repository/EventRepository";
 import { CreateRSVPRepository } from "../../src/repository/RSVPRepository";
+import "dotenv/config";
+
+
+async function resetDatabase() {
+    await prisma.rSVP.deleteMany();
+    await prisma.event.deleteMany();
+}
+
+async function createTestEvent(overrides = {}) {
+    return await prisma.event.create({
+        data: {
+            title: "Spring Concert",
+            description: "A concert with live music",
+            location: "Campus Hall",
+            category: "music",
+            status: "published",
+            capacity: 100,
+            startDatetime: new Date("2100-01-01T12:00:00"),
+            endDatetime: new Date("2100-01-01T14:00:00"),
+            organizerId: "user-staff",
+            ...overrides,
+        },
+    });
+}
 
 describe("EventService", () => {
     let eventService: ReturnType<typeof CreateEventService>;
-    beforeEach(() => {
+
+    beforeEach(async () => {
+        await resetDatabase();
+
+        await createTestEvent();
+
+        await createTestEvent({
+            title: "Soccer Game",
+            description: "Sports event",
+            location: "Main Field",
+            category: "sports",
+            startDatetime: new Date("2100-01-02T12:00:00"),
+            endDatetime: new Date("2100-01-02T14:00:00"),
+        });
+
         eventService = CreateEventService(CreateEventRepository(), CreateRSVPRepository());
     });
 
@@ -102,7 +141,7 @@ describe("EventService", () => {
 
         expect(result.ok).toBe(true);
         if (result.ok) {
-            expect(result.value.length).toBe(0)
+            expect(result.value.length).toBe(0);
         }
     });
 
@@ -114,5 +153,4 @@ describe("EventService", () => {
             expect(result.value.length).toBe(0);
         }
     });
-
 });

@@ -10,6 +10,7 @@ export type EventError =
     | {name: "UnauthorizedRsvpError"; message: string }
     | {name: "DashboardAccessError"; message: string }
     | {name: "DashboardDataError"; message: string }
+    | {name: 'Database Error'; message: string};
 
 export const EventNotFound = (message:string): EventError => ({
     name: 'EventNotFound', 
@@ -63,4 +64,8 @@ export const DashboardAccessError = (message: string): EventError => ({
 export const DashboardDataError = (message: string): EventError => ({
   name: "DashboardDataError",
   message,
+});
+export const DatabaseError = (message:string): EventError => ({
+    name: 'Database Error', 
+    message
 });
