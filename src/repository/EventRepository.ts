@@ -142,7 +142,7 @@ class EventRepository implements IEventRepository {
     async findAll(): Promise<Result<IEvent[], EventError>> {
         try {
             const events = await this.prisma.event.findMany();
-            return Ok(events.map((e: PrismaEventRecord) => this.toEvent(e)));
+            return Ok(events.map(e => this.toEvent(e as PrismaEventRecord)));
         } catch (error) {
             return Err(DatabaseError("Failed to retrieve events."));
         }
@@ -184,7 +184,7 @@ class EventRepository implements IEventRepository {
             }
 
             const events = await this.prisma.event.findMany({ where });
-            return Ok(events.map((e: PrismaEventRecord) => this.toEvent(e)));
+            return Ok(events.map(e => this.toEvent(e as PrismaEventRecord)));
         } catch (error) {
             return Err(DatabaseError("Failed to filter events."));
         }
