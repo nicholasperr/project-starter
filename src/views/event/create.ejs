@@ -15,8 +15,14 @@
     </label>
 
     <label class="block">
-      <span class="text-[#f1f1f1]">Description</span>
-      <textarea name="description" class="mt-1 block w-full border-2 border-[#7ec0ce] rounded p-2 bg-[#16213e] text-[#f1f1f1]" rows="4" required><%= formValues?.description ?? '' %></textarea>
+      <span class="text-[#f1f1f1]" >Description</span>
+      <div style="position:relative;" x-data="{ description: '' }"> 
+        <textarea name="description" class="mt-1 block w-full border-2 border-[#7ec0ce] rounded p-2 bg-[#16213e] text-[#f1f1f1]" rows="4" required x-model="description"><%= formValues?.description ?? '' %></textarea>
+        <span style="position:absolute; bottom: 5px; right: 5px;">
+          <span class="text-xs text-[#7ec0ce]"><span x-text="description.length"></span> characters</span>
+        </span>
+      </div>
+      
       <%- include('../partials/field-error', { message: errors?.description }) %>
     </label>
 
