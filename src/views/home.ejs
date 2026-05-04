@@ -1,98 +1,107 @@
-<section class="mb-5 p-6 border border-slate-200 rounded-2xl bg-gradient-to-b from-white to-slate-50 shadow-lg">
-  <h1 class="text-3xl font-bold text-slate-900 mb-3">Welcome to Project Starter</h1>
-  <p class="text-slate-500">
-    You are signed in and ready to build. This placeholder page is where your
-    project's main content will go.
-  </p>
-  <% if (session.authenticatedUser) { %>
-    <p class="text-slate-500 mt-2 mb-0">
-      Signed in as <strong class="text-slate-700"><%= session.authenticatedUser.displayName %></strong>
-      (<%= session.authenticatedUser.email %>, role:
-      <strong class="text-slate-700"><%= session.authenticatedUser.role %></strong>).
-    </p>
-  <% } %>
-</section>
-
 <% if (pageError) { %>
-  <%- include("partials/error", { message: pageError }) %>
+  <div class="mb-6 rounded-3xl border border-[#B91717] bg-[#521212] p-5 text-[#f1f1f1] shadow-sm">
+    <p><%= pageError %></p>
+  </div>
 <% } %>
 
-<section class="max-w-3xl p-6 border border-slate-200 rounded-2xl bg-white shadow-lg">
-  <div class="mb-4">
-    <h2 class="text-xl font-semibold mb-2">Getting Started</h2>
-    <p class="text-slate-500">
-      This starter application provides authentication and role-based authorization
-      out of the box. Here are some ideas for where to begin:
-    </p>
-  </div>
+<div class="grid gap-6 xl:grid-cols-[1.05fr_0.95fr] xl:items-stretch">
+  <section class="space-y-6 h-full">
+    <div class="rounded-3xl border-2 border-[#7ec0ce] bg-[#16213e] p-6 shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_15px_#7ec0ce,0_0_30px_#7ec0ce] h-full flex flex-col">
+      <div class="flex flex-col gap-4 flex-grow">
+        <div>
+          <h2 class="text-xl font-semibold text-[#f1f1f1]"><%= isAdmin ? "Your events" : "Your RSVPs" %></h2>
+          <p class="mt-2 text-sm text-[#9bb7d4]">
+            <%= isAdmin ? "Events you created most recently." : "Upcoming RSVP'd events." %>
+          </p>
+        </div>
 
-  <ul class="list-disc pl-5 space-y-2 text-slate-700">
-    <li>Replace this page with your project's main dashboard or landing page.</li>
-    <li>Add new routes in <code class="bg-slate-100 px-1 rounded text-sm">src/app.ts</code> and protect them with
-      <code class="bg-slate-100 px-1 rounded text-sm">requireAuthenticated</code> or <code class="bg-slate-100 px-1 rounded text-sm">requireRole</code>.</li>
-    <li>Create new EJS views in <code class="bg-slate-100 px-1 rounded text-sm">src/views/</code>.</li>
-    <li>Add your own models, services, and controllers under <code class="bg-slate-100 px-1 rounded text-sm">src/</code>.</li>
-    <li>Use the Prisma schema in <code class="bg-slate-100 px-1 rounded text-sm">prisma/schema.prisma</code> to define your database tables.</li>
-  </ul>
-</section>
+        <div class="space-y-3 flex-grow">
+          <% if (isAdmin) { %>
+            <% if (adminEvents.length === 0) { %>
+              <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
+                You haven't created any events yet. Create one to get started.
+              </div>
+            <% } else { %>
+              <% adminEvents.forEach((event) => { %>
+                <article class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5">
+                  <div class="flex items-start justify-between gap-3">
+                    <a href="/events/<%= event.id %>" class="text-lg font-semibold text-[#f1f1f1] hover:text-[#df3a9e]"><%= event.title %></a>
+                    <span class="rounded-full bg-[#214F82] px-3 py-1 text-xs uppercase tracking-[0.08em] text-[#f1f1f1]"><%= event.status %></span>
+                  </div>
+                  <p class="mt-2 text-sm text-[#9bb7d4]"><%= event.location %> · <%= event.startDatetime.toLocaleDateString() %> <%= event.startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></p>
+                  <p class="mt-3 text-sm leading-6 text-[#cbd5e1]"><%= event.description %></p>
+                </article>
+              <% }) %>
+            <% } %>
+          <% } else if (isUser) { %>
+            <% if (userRsvps.length === 0) { %>
+              <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
+                You don't have any RSVP'd events yet. Browse events and RSVP to the ones you want to attend.
+              </div>
+            <% } else { %>
+              <% userRsvps.forEach((item) => { %>
+                <article class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5">
+                  <div class="flex items-start justify-between gap-3">
+                    <a href="/events/<%= item.event.id %>" class="text-lg font-semibold text-[#f1f1f1] hover:text-[#df3a9e]"><%= item.event.title %></a>
+                    <span class="rounded-full bg-[#214F82] px-3 py-1 text-xs uppercase tracking-[0.08em] text-[#f1f1f1]"><%= item.rsvp.status %></span>
+                  </div>
+                  <p class="mt-2 text-sm text-[#9bb7d4]"><%= item.event.location %> · <%= item.event.startDatetime.toLocaleDateString() %> <%= item.event.startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></p>
+                  <p class="mt-3 text-sm leading-6 text-[#cbd5e1]"><%= item.event.description %></p>
+                </article>
+              <% }) %>
+            <% } %>
+          <% } else { %>
+            <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
+              Your role does not have a dedicated RSVP dashboard. Explore events on the right to find something new.
+            </div>
+          <% } %>
+        </div>
 
-<section class="max-w-3xl mt-5 p-6 border border-slate-200 rounded-2xl bg-white shadow-lg" x-data="{ open: false }">
-  <button
-    @click="open = !open"
-    class="w-full flex items-center justify-between text-left bg-transparent border-0 p-0 cursor-pointer"
-  >
-    <h2 class="text-xl font-semibold">Alpine.js Demo</h2>
-    <span class="text-slate-400 text-sm" x-text="open ? 'Hide' : 'Show'">Show</span>
-  </button>
-
-  <div x-show="open" x-transition class="mt-4">
-    <p class="text-slate-500 mb-3">
-      Alpine.js is included via CDN and ready to use. This collapsible section is
-      a quick demonstration. Use <code class="bg-slate-100 px-1 rounded text-sm">x-data</code>,
-      <code class="bg-slate-100 px-1 rounded text-sm">x-show</code>,
-      <code class="bg-slate-100 px-1 rounded text-sm">@click</code>, and other
-      Alpine directives directly in your EJS templates.
-    </p>
-    <div x-data="{ count: 0 }" class="flex items-center gap-3">
-      <button
-        @click="count++"
-        class="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium cursor-pointer hover:bg-blue-700 text-sm"
-      >
-        Clicked: <span x-text="count">0</span>
-      </button>
-      <span class="text-sm text-slate-500">A simple Alpine.js counter</span>
+        <div class="pt-4 border-t border-[#7ec0ce]">
+          <a
+            href="<%= isAdmin ? '/new' : '/my-rsvps' %>"
+            class="inline-flex items-center justify-center w-full rounded-lg bg-[#df3a9e] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#d12c90]"
+          >
+            <%= isAdmin ? 'Create new event' : 'View all RSVPs' %>
+          </a>
+        </div>
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 
+  <section class="space-y-6 h-full">
+    <div class="rounded-3xl border-2 border-[#7ec0ce] bg-[#16213e] p-6 shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_15px_#7ec0ce,0_0_30px_#7ec0ce] h-full flex flex-col">
+      <div class="flex flex-col gap-4 flex-grow">
+        <div>
+          <h2 class="text-xl font-semibold text-[#f1f1f1]">Upcoming events</h2>
+          <p class="mt-2 text-sm text-[#9bb7d4]">Browse the next events that are scheduled to start soon.</p>
+        </div>
 
-<section class="max-w-3xl mt-5 p-6 border border-slate-200 rounded-2xl bg-white shadow-lg">
-  <h2 class="text-xl font-semibold mb-3">Sprint 1 Event Links</h2>
-  <ul class="list-disc pl-5 space-y-2 text-slate-700">
-    <li><a class="text-blue-700 hover:underline" href="/events/1">View published event (Event 1)</a></li>
-    <li><a class="text-blue-700 hover:underline" href="/events/2">View draft event (Event 2)</a></li>
-  </ul>
-</section>
+        <div class="space-y-3 flex-grow">
+          <% if (upcomingEvents.length === 0) { %>
+            <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
+              No upcoming events are available right now.
+            </div>
+          <% } else { %>
+            <% upcomingEvents.forEach((event) => { %>
+              <article class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5">
+                <a href="/events/<%= event.id %>" class="text-lg font-semibold text-[#f1f1f1] hover:text-[#df3a9e]"><%= event.title %></a>
+                <p class="mt-2 text-sm text-[#9bb7d4]"><%= event.location %> · <%= event.startDatetime.toLocaleDateString() %> <%= event.startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></p>
+                <p class="mt-3 text-sm leading-6 text-[#cbd5e1]"><%= event.description %></p>
+              </article>
+            <% }) %>
+          <% } %>
+        </div>
 
-
-<section class="max-w-3xl mt-5 p-6 border border-slate-200 rounded-2xl bg-white shadow-lg">
-  <h2 class="text-xl font-semibold mb-3">Quick Links</h2>
-
-  <div class="flex gap-3 flex-wrap">
-    <a
-      href="/new"
-      class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white font-medium no-underline hover:bg-blue-700"
-    >
-      New Event
-    </a>
-
-    <% if (session.authenticatedUser && session.authenticatedUser.role === "user") { %>
-      <a
-        href="/my-rsvps"
-        class="inline-flex items-center px-4 py-2 rounded-lg bg-slate-700 text-white font-medium no-underline hover:bg-slate-800"
-      >
-        View RSVPs
-      </a>
-    <% } %>
-  </div>
-</section>
+        <div class="pt-4 border-t border-[#7ec0ce]">
+          <a
+            href="/events"
+            class="inline-flex items-center justify-center w-full rounded-lg bg-[#df3a9e] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#d12c90]"
+          >
+            View all events
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

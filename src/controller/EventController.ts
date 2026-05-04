@@ -5,7 +5,6 @@ import type { IAppBrowserSession } from "../session/AppSession";
 import { Category } from "../model/event";
 import { EventTimeFrame } from "../service/EventService";
 import { EventError, Unauthorized, InvalidInput } from "../lib/errors";
-import { time } from "node:console";
 
 export interface IEventController {
     createEvent(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
@@ -23,6 +22,7 @@ export interface IEventController {
     publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
     cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
     showRSVPDashboard(res: Response, session: IAppBrowserSession):  Promise<void>;
+    showHomePage(res: Response, session: IAppBrowserSession): Promise<void>;
     searchEvents(req: Request, res: Response): Promise<void>;
     getFilteredEvents(req: Request, res: Response): Promise<void>;
 }
@@ -550,6 +550,38 @@ class EventController implements IEventController {
             session,
             upcoming: result.value.upcoming,
             past: result.value.past,
+        });
+    }
+
+    async showHomePage(res: Response, session: IAppBrowserSession): Promise<void> {
+        const user = session.authenticatedUser;
+
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        const homeDataResult = await this.eventService.getHomePageData(user.userId, user.role);
+        if (!homeDataResult.ok) {
+            const error = homeDataResult.value as EventError;
+            res.status(500).render("partials/error", {
+                message: error.message,
+                layout: false,
+            });
+            return;
+        }
+
+        res.render("home", {
+            session,
+            pageError: null,
+            isAdmin: user.role === "admin",
+            isUser: user.role === "user",
+            adminEvents: homeDataResult.value.adminEvents,
+            userRsvps: homeDataResult.value.userRsvps,
+            upcomingEvents: homeDataResult.value.upcomingEvents,
         });
     }
 }

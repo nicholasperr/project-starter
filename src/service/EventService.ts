@@ -18,7 +18,12 @@ export interface IEventService {
     getRSVPsForEvent(eventId: number): Promise<Result<IRSVP[],EventError>>;
     updateRSVP(eventId: number, userId: string, status: RSVPStatus): Promise<Result<undefined,EventError>>;
     deleteRSVP(eventId: number, userId: string): Promise<Result<undefined,EventError>>;
-    getUserDashboard(userId: string, role: string,): Promise<Result<{ upcoming: {rsvp: IRSVP, event: IEvent}[]; past: {rsvp: IRSVP, event: IEvent}[] }, EventError>>;
+    getUserDashboard(userId: string, role: string,): Promise<Result<{ upcoming: {rsvp: IRSVP, event: IEvent}[]; past: {rsvp: IRSVP, event: IEvent}[] }, EventError>>;    
+    getHomePageData(userId: string, role: string): Promise<Result<{
+        upcomingEvents: IEvent[];
+        adminEvents: IEvent[];
+        userRsvps: { rsvp: IRSVP; event: IEvent }[];
+    }, EventError>>;    
     getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, EventError>>;
     publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>>;
     cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>>;
@@ -157,6 +162,47 @@ class EventService implements IEventService {
         }
 
         return Ok(events)
+    }
+
+    async getHomePageData(userId: string, role: string): Promise<Result<{
+        upcomingEvents: IEvent[];
+        adminEvents: IEvent[];
+        userRsvps: { rsvp: IRSVP; event: IEvent }[];
+    }, EventError>> {
+        const upcomingResult = await this.eventRepository.findFiltered("", undefined, "all_upcoming");
+        if (!upcomingResult.ok) {
+            return Err(upcomingResult.value as EventError);
+        }
+
+        const upcomingEvents = upcomingResult.value.slice(0, 4);
+        const adminEvents: IEvent[] = [];
+        const userRsvps: { rsvp: IRSVP; event: IEvent }[] = [];
+
+        if (role === "admin") {
+            const allEventsResult = await this.eventRepository.findAll();
+            if (!allEventsResult.ok) {
+                return Err(allEventsResult.value as EventError);
+            }
+
+            const myEvents = allEventsResult.value
+                .filter((event) => event.organizerId === userId)
+                .sort((a, b) => a.startDatetime.getTime() - b.startDatetime.getTime())
+                .slice(0, 4);
+
+            return Ok({ upcomingEvents, adminEvents: myEvents, userRsvps });
+        }
+
+        if (role === "user") {
+            const dashboardResult = await this.getUserDashboard(userId, role);
+            if (!dashboardResult.ok) {
+                return Err(dashboardResult.value as EventError);
+            }
+
+            const rsvps = [...dashboardResult.value.upcoming].slice(0, 4);
+            return Ok({ upcomingEvents, adminEvents, userRsvps: rsvps });
+        }
+
+        return Ok({ upcomingEvents, adminEvents, userRsvps });
     }
 
     async toggleRSVP(eventId: number, userId: string): Promise<Result<undefined, EventError>> {
