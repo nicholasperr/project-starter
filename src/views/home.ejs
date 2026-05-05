@@ -9,14 +9,14 @@
     <div class="rounded-3xl border-2 border-[#7ec0ce] bg-[#16213e] p-6 shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_15px_#7ec0ce,0_0_30px_#7ec0ce] h-full flex flex-col">
       <div class="flex flex-col gap-4 flex-grow">
         <div>
-          <h2 class="text-xl font-semibold text-[#f1f1f1]"><%= isAdmin ? "Your events" : "Your RSVPs" %></h2>
+          <h2 class="text-xl font-semibold text-[#f1f1f1]"><%= (isAdmin || isStaff) ? "Your events" : "Your RSVPs" %></h2>
           <p class="mt-2 text-sm text-[#9bb7d4]">
-            <%= isAdmin ? "Events you created most recently." : "Upcoming RSVP'd events." %>
+            <%= (isAdmin || isStaff) ? "Events you created most recently." : "Upcoming RSVP'd events." %>
           </p>
         </div>
 
         <div class="space-y-3 flex-grow">
-          <% if (isAdmin) { %>
+          <% if (isAdmin || isStaff) { %>
             <% if (adminEvents.length === 0) { %>
               <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
                 You haven't created any events yet. Create one to get started.
@@ -52,17 +52,17 @@
             <% } %>
           <% } else { %>
             <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
-              Your role does not have a dedicated RSVP dashboard. Explore events on the right to find something new.
+              Your role does not have a dedicated dashboard. Explore events on the right to find something new.
             </div>
           <% } %>
         </div>
 
         <div class="pt-4 border-t border-[#7ec0ce]">
           <a
-            href="<%= isAdmin ? '/new' : '/my-rsvps' %>"
+            href="<%= (isAdmin || isStaff) ? '/new' : '/my-rsvps' %>"
             class="inline-flex items-center justify-center w-full rounded-lg bg-[#df3a9e] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#d12c90]"
           >
-            <%= isAdmin ? 'Create new event' : 'View all RSVPs' %>
+            <%= (isAdmin || isStaff) ? 'Create new event' : 'View all RSVPs' %>
           </a>
         </div>
       </div>
