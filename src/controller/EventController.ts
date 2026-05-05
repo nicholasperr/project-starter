@@ -23,8 +23,8 @@ export interface IEventController {
     publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
     cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
     showRSVPDashboard(res: Response, session: IAppBrowserSession):  Promise<void>;
-    searchEvents(req: Request, res: Response): Promise<void>;
-    getFilteredEvents(req: Request, res: Response): Promise<void>;
+    searchEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
+    getFilteredEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
 }
 
 class EventController implements IEventController {
@@ -398,7 +398,7 @@ class EventController implements IEventController {
         res.redirect(`/events/${eventId}`);
     }
 
-    async searchEvents(req: Request, res: Response){
+    async searchEvents(req: Request, res: Response, session: IAppBrowserSession){
         
         const query = (req.query.query as string ?? "")
 
@@ -409,20 +409,20 @@ class EventController implements IEventController {
         }
 
         if (req.get("HX-Request") === "true") {
-            res.render("partials/event-list", { events: result.value, layout: false});
+            res.render("partials/event-list", {events: result.value, session, layout: false});
         } else { 
             res.render("events/index", {
             events: result.value,
             query: query,
             category: null,
             timeframe: null,
-            session: (req as any).session,
+            session,
             pageError: null
         });
     }
     }
 
-    async getFilteredEvents(req: Request, res: Response): Promise<void> {
+    async getFilteredEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void> {
 
         const category = req.query.category as Category | undefined;
         const timeframe = req.query.timeframe as EventTimeFrame | undefined;
@@ -434,14 +434,14 @@ class EventController implements IEventController {
         }
 
         if (req.get("HX-Request") === "true") {
-            res.render("partials/event-list", { events: result.value, layout: false});
+            res.render("partials/event-list", {events: result.value, session, layout: false});
         } else { 
             res.render("events/index", {
             events: result.value,
             category: category ?? null,
             timeframe: timeframe ?? null, 
             query: null,
-            session: (req as any).session,
+            session,
             pageError: null
         }); 
     }

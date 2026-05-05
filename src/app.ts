@@ -265,29 +265,34 @@ class ExpressApp implements IApp {
         this.eventController.showEventCreateForm(res, browserSession);
       }),
     );
-    this.app.get(
-      "/events/search",
-      
-      asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
-          return;
-        }
 
-        this.eventController.searchEvents(req, res);
-      })
-    );
     this.app.get(
-      "/events",
-      asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
-          return;
-        }
-        this.logger.info(`GET /events`);
+        "/events/search",
+        
+        asyncHandler(async (req, res) => {
+            if (!this.requireAuthenticated(req, res)) {
+            return;
+            }
 
-        this.eventController.getFilteredEvents(req, res);
-      })
+            const browserSession = recordPageView(sessionStore(req));
+            this.eventController.searchEvents(req, res, browserSession);
+        })
     );
-      this.app.get(
+
+    this.app.get(
+        "/events",
+        asyncHandler(async (req, res) => {
+            if (!this.requireAuthenticated(req, res)) {
+            return;
+            }
+            this.logger.info(`GET /events`);
+
+            const browserSession = recordPageView(sessionStore(req));
+            this.eventController.getFilteredEvents(req, res, browserSession);
+        })
+        );
+
+    this.app.get(
       "/events/:id",
       asyncHandler(async (req, res) => {
         if (!this.requireAuthenticated(req, res)) {

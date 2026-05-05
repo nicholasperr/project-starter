@@ -11,11 +11,11 @@ import { CreateRSVPRepository } from "../../src/repository/RSVPRepository";
 import { CreateEventService } from "../../src/service/EventService";
 import { CreateLoggingService } from "../../src/service/LoggingService";
 
-async function loginAsUser(agent: ReturnType<typeof request.agent>) {
+async function loginAsStaff(agent: ReturnType<typeof request.agent>) {
   await agent
     .post("/login")
     .type("form")
-    .send({ email: "user@app.test", password: "password123" })
+    .send({ email: "staff@app.test", password: "password123" })
     .expect(302);
 
   await agent.get("/").expect(302);
@@ -71,7 +71,7 @@ describe("Event creation and editing integration", () => {
 
   it("creates an event through the app and persists it in the repository", async () => {
     const agent = request.agent(app);
-    await loginAsUser(agent);
+    await loginAsStaff(agent);
 
     const title = "New Campus Lecture";
     await agent
@@ -86,7 +86,7 @@ describe("Event creation and editing integration", () => {
         capacity: "120",
         startDatetime: "2100-01-10T10:00",
         endDatetime: "2100-01-10T12:00",
-        organizerId: "user-reader",
+        organizerId: "user-staff",
       })
       .expect(302)
       .expect("Location", "/events");
@@ -100,7 +100,7 @@ describe("Event creation and editing integration", () => {
 
   it("shows the edit form and updates an event through the app", async () => {
     const agent = request.agent(app);
-    await loginAsUser(agent);
+    await loginAsStaff(agent);
 
     const originalTitle = "Community Meetup";
     await agent
@@ -115,7 +115,7 @@ describe("Event creation and editing integration", () => {
         capacity: "50",
         startDatetime: "2100-02-01T17:00",
         endDatetime: "2100-02-01T19:00",
-        organizerId: "user-reader",
+        organizerId: "user-staff",
       })
       .expect(302);
 
@@ -151,7 +151,7 @@ describe("Event creation and editing integration", () => {
 
   it("returns validation errors when the edit form is incomplete", async () => {
     const agent = request.agent(app);
-    await loginAsUser(agent);
+    await loginAsStaff(agent);
 
     const title = "Editable Event";
     await agent
@@ -166,7 +166,7 @@ describe("Event creation and editing integration", () => {
         capacity: "10",
         startDatetime: "2100-03-01T11:00",
         endDatetime: "2100-03-01T12:00",
-        organizerId: "user-reader",
+        organizerId: "user-staff",
       })
       .expect(302);
 
@@ -192,7 +192,7 @@ describe("Event creation and editing integration", () => {
 
   it("returns a user-visible error when editing a missing event", async () => {
     const agent = request.agent(app);
-    await loginAsUser(agent);
+    await loginAsStaff(agent);
 
     const response = await agent
       .post("/events/99999")

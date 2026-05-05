@@ -1,5 +1,4 @@
-<section class="mb-5 p-6 border border-[#7ec0ce] rounded-2xl bg-[#16213e] shadow-lg">
-  <h1 class="text-3xl font-bold text-[#f1f1f1] mb-4">Events</h1>
+<section class="mb-5 p-6 border-2 border-[#7ec0ce] rounded-2xl bg-[#16213e] shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_15px_#7ec0ce,0_0_30px_#7ec0ce]">  <h1 class="text-3xl font-bold text-[#f1f1f1] mb-4">Events</h1>
 
   <form method="GET" action="/events/search" class="mb-4 flex gap-2">
     <div
@@ -57,7 +56,7 @@
       <option value="this_weekend" <%= timeframe === 'this_weekend' ? 'selected' : '' %>>This Weekend</option>
     </select>
 
-    <button type="submit" class="px-4 py-2 bg-[#16213e] text-[#7ec0ce] border-2 border-[#7ec0ce] rounded-lg text-sm font-medium cursor-pointer hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce]">Filter</button>
+    <button type="submit" class="px-4 py-2 bg-[#16213e] text-[#7ec0ce] border-2 border-[#7ec0ce] rounded-lg text-sm font-medium cursor-pointer hover:bg-[#214F82]">Filter</button>
 
     <a
       x-show="category !== '' || timeframe !== ''"
