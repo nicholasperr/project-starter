@@ -265,7 +265,7 @@ class ExpressApp implements IApp {
         this.eventController.showEventCreateForm(res, browserSession);
       }),
     );
-    
+
     this.app.get(
         "/events/search",
         
@@ -277,8 +277,8 @@ class ExpressApp implements IApp {
             const browserSession = recordPageView(sessionStore(req));
             this.eventController.searchEvents(req, res, browserSession);
         })
-        );
-    
+    );
+
     this.app.get(
         "/events",
         asyncHandler(async (req, res) => {
@@ -292,6 +292,18 @@ class ExpressApp implements IApp {
         })
         );
 
+    this.app.get(
+      "/events/:id",
+      asyncHandler(async (req, res) => {
+        if (!this.requireAuthenticated(req, res)) {
+          return;
+        }
+        this.logger.info(`GET /events/${req.params.id}`);
+
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.showEventDetail(req, res, browserSession);
+      }),
+    );
 
     this.app.post(
       "/events/:id/publish",
