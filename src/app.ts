@@ -257,7 +257,7 @@ class ExpressApp implements IApp {
     this.app.get(
       "/new",
       asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
+        if (!this.requireRole(req, res, ["admin", "staff"], "Only admins and staff can create events.")) {
           return;
         }
         this.logger.info(`GET /new`);
@@ -370,7 +370,7 @@ class ExpressApp implements IApp {
     this.app.post(
       "/events",
       asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
+        if (!this.requireRole(req, res, ["admin", "staff"], "Only admins and staff can create events.")) {
           return;
         }
         this.logger.info(`POST /events`);
