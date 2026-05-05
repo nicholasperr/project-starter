@@ -5,7 +5,7 @@ import type { IAppBrowserSession } from "../session/AppSession";
 import { Category } from "../model/event";
 import { EventTimeFrame } from "../service/EventService";
 import { EventError, Unauthorized, InvalidInput } from "../lib/errors";
-import { time } from "node:console";
+import type { IUserRepository } from "../auth/UserRepository";
 
 export interface IEventController {
     createEvent(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
@@ -32,6 +32,7 @@ class EventController implements IEventController {
     constructor(
         private readonly eventService: IEventService,
         private readonly logger: ILoggingService,
+        private readonly userRepository: IUserRepository,
     ) {}
 
     async showEventDetail(req: Request, res: Response, session: IAppBrowserSession){
@@ -77,12 +78,19 @@ class EventController implements IEventController {
                 ? rsvpsResult.value.find((rsvp) => rsvp.userId === user.userId) ?? null
                 : null;
 
+        const organizerResult = await this.userRepository.findById(result.value.organizerId);
+        const organizerName =
+            organizerResult.ok && organizerResult.value
+                ? organizerResult.value.displayName
+                : result.value.organizerId;
+
         res.render("event/show", {
             session,
             pageError: null,
             event: result.value,
             currentRsvp,
             errorMessage: null,
+            organizerName,
         });
     }
 
@@ -587,6 +595,10 @@ class EventController implements IEventController {
     }
 }
 
-export const CreateEventController = (eventService: IEventService, logger: ILoggingService): IEventController => {
-    return new EventController(eventService, logger);
+export const CreateEventController = (
+    eventService: IEventService,
+    logger: ILoggingService,
+    userRepository: IUserRepository,
+): IEventController => {
+    return new EventController(eventService, logger, userRepository);
 };

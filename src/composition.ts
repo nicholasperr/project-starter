@@ -34,8 +34,8 @@ export function createComposedApp(logger?: ILoggingService, eventRepository?: IE
   const eventController = CreateEventController(
     eventService,
     resolvedLogger,
+    authUsers,
   );
-
 
   return CreateApp(authController, eventController, resolvedLogger);
 }
