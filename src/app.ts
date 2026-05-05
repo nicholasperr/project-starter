@@ -265,18 +265,20 @@ class ExpressApp implements IApp {
         this.eventController.showEventCreateForm(res, browserSession);
       }),
     );
-    this.app.get(
+        this.app.get(
       "/events/search",
-      
+
       asyncHandler(async (req, res) => {
         if (!this.requireAuthenticated(req, res)) {
           return;
         }
 
-        this.eventController.searchEvents(req, res);
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.searchEvents(req, res, browserSession);
       })
     );
-    this.app.get(
+
+        this.app.get(
       "/events",
       asyncHandler(async (req, res) => {
         if (!this.requireAuthenticated(req, res)) {
@@ -284,7 +286,8 @@ class ExpressApp implements IApp {
         }
         this.logger.info(`GET /events`);
 
-        this.eventController.getFilteredEvents(req, res);
+        const browserSession = recordPageView(sessionStore(req));
+        this.eventController.getFilteredEvents(req, res, browserSession);
       })
     );
       this.app.get(

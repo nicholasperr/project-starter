@@ -2,42 +2,30 @@
 <% const canManage = user && (user.role === "admin" || user.userId === event.organizerId); %>
 
 <% const statusStyles = {
-  draft: "border-amber-200 bg-amber-50 text-amber-800",
-  published: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  cancelled: "border-rose-200 bg-rose-50 text-rose-800",
-  past: "border-slate-200 bg-slate-100 text-slate-700"
+  draft: "border-yellow-300 text-yellow-300",
+  published: "border-green-400 text-green-300",
+  cancelled: "border-red-400 text-red-300",
+  past: "border-slate-400 text-slate-300"
 }; %>
 
 <section
   id="event-lifecycle-panel"
-  class="space-y-4"
+  class="rounded-xl border border-cyan-300/70 bg-slate-950/70 p-5"
   x-data="{ changed: false }"
   x-init="changed = true; setTimeout(() => changed = false, 900)"
 >
   <div
-    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-500"
-    :class="changed ? 'scale-[1.01] ring-4 ring-blue-100' : 'scale-100 ring-0'"
+    class="transition duration-500"
+    :class="changed ? 'scale-[1.02]' : 'scale-100'"
   >
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Event Status</p>
-        <span class="mt-2 inline-flex items-center rounded-full border px-3 py-1 text-sm font-bold capitalize <%= statusStyles[event.status] ?? statusStyles.past %>">
-          <%= event.status %>
-        </span>
-      </div>
+    <h2 class="evently-hand text-3xl font-bold text-cyan-100">Status</h2>
 
-      <% if (canManage) { %>
-        <a
-          href="/events/<%= event.id %>/edit"
-          class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 no-underline shadow-sm hover:bg-slate-50"
-        >
-          Edit Event
-        </a>
-      <% } %>
-    </div>
+    <span class="mt-3 inline-flex rounded border px-3 py-1 evently-hand text-xl font-bold capitalize <%= statusStyles[event.status] ?? statusStyles.past %>">
+      <%= event.status %>
+    </span>
 
     <% if (errorMessage) { %>
-      <div class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800" role="alert">
+      <div class="mt-4 rounded-lg border border-red-400 bg-red-950/40 px-4 py-3 text-sm font-bold text-red-200" role="alert">
         <%= errorMessage %>
       </div>
     <% } %>
@@ -53,7 +41,7 @@
       >
         <button
           type="submit"
-          class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 sm:w-auto"
+          class="evently-hand evently-button-glow w-full rounded-lg border border-cyan-300 bg-slate-900 px-4 py-2 text-xl font-bold text-cyan-100 hover:bg-cyan-950"
         >
           Publish Event
         </button>
@@ -69,17 +57,17 @@
       >
         <button
           type="submit"
-          class="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-rose-700 sm:w-auto"
+          class="evently-hand evently-pink-glow w-full rounded-lg border border-pink-400 bg-slate-900 px-4 py-2 text-xl font-bold text-pink-300 hover:bg-pink-950/40"
         >
           Cancel Event
         </button>
       </form>
     <% } else if (canManage && event.status === "cancelled") { %>
-      <p class="mt-4 text-sm text-slate-600">This event has been cancelled and cannot be restored.</p>
+      <p class="mt-4 text-sm text-cyan-100/70">This event has been cancelled and cannot be restored.</p>
     <% } else if (canManage && event.status === "past") { %>
-      <p class="mt-4 text-sm text-slate-600">This event has already concluded.</p>
+      <p class="mt-4 text-sm text-cyan-100/70">This event has already concluded.</p>
     <% } else { %>
-      <p class="mt-4 text-sm text-slate-500">No publishing or cancellation actions are available for your role.</p>
+      <p class="mt-4 text-sm text-cyan-100/70">No lifecycle actions are available for your role.</p>
     <% } %>
   </div>
 </section>

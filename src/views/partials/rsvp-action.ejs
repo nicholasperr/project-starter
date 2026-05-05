@@ -3,16 +3,16 @@
   <% const status = currentRsvp ? currentRsvp.status : null; %>
 
   <% if (errorMessage) { %>
-    <div class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+    <div class="mb-3 rounded-lg border border-red-400 bg-red-950/40 px-3 py-2 text-sm font-bold text-red-200">
       <%= errorMessage %>
     </div>
   <% } %>
 
   <% if (user && user.role === "user") { %>
     <% if (event.status === "cancelled") { %>
-      <p class="text-sm text-red-700">This event was cancelled, so your RSVP was removed.</p>
+      <p class="text-sm text-red-300">This event was cancelled, so your RSVP was removed.</p>
     <% } else if (event.status === "past") { %>
-      <p class="text-sm text-slate-500">This event has already ended.</p>
+      <p class="text-sm text-cyan-100/60">This event has already ended.</p>
     <% } else { %>
       <form
         method="POST"
@@ -24,7 +24,7 @@
       >
         <button
           type="submit"
-          class="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium cursor-pointer hover:bg-blue-700"
+          class="evently-hand evently-button-glow w-full rounded-lg border border-cyan-300 bg-slate-900 px-4 py-2 text-xl font-bold text-cyan-100 hover:bg-cyan-950"
         >
           <% if (status === "going") { %>
             Cancel RSVP
@@ -37,14 +37,15 @@
       </form>
 
       <% if (status === "going") { %>
-        <p class="text-sm text-green-700">You are going to this event.</p>
+        <p class="evently-hand text-lg font-bold text-green-300">✓ RSVP’d</p>
+        <p class="text-sm text-green-300">You are going to this event.</p>
       <% } else if (status === "waitlisted") { %>
-        <p class="text-sm text-amber-700">You are currently waitlisted.</p>
+        <p class="evently-hand text-lg font-bold text-yellow-300">Join Waitlist</p>
       <% } else if (status === "cancelled") { %>
-        <p class="text-sm text-slate-500">Your RSVP is currently cancelled.</p>
+        <p class="text-sm text-cyan-100/60">Your RSVP is currently cancelled.</p>
       <% } %>
     <% } %>
   <% } else { %>
-    <p class="text-slate-500">No RSVP actions available for your role.</p>
+    <p class="text-sm text-cyan-100/60">No RSVP actions available for your role.</p>
   <% } %>
 </div>

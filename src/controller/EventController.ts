@@ -23,8 +23,8 @@ export interface IEventController {
     publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
     cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
     showRSVPDashboard(res: Response, session: IAppBrowserSession):  Promise<void>;
-    searchEvents(req: Request, res: Response): Promise<void>;
-    getFilteredEvents(req: Request, res: Response): Promise<void>;
+    searchEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
+    getFilteredEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
 }
 
 class EventController implements IEventController {
@@ -450,55 +450,80 @@ class EventController implements IEventController {
         res.redirect(`/events/${eventId}`);
     }
 
-    async searchEvents(req: Request, res: Response){
-
-        const query = (req.query.query as string ?? "")
+            async searchEvents(req: Request, res: Response, session: IAppBrowserSession) {
+        const query = (req.query.query as string ?? "");
 
         const result = await this.eventService.searchEvents(query);
         if (result.ok === false) {
-            res.status(400).json({ error: result.value});
+            res.status(400).json({ error: result.value });
             return;
         }
 
         if (req.get("HX-Request") === "true") {
-            res.render("partials/event-list", { events: result.value, layout: false});
+            res.render("partials/event-list", {
+                events: result.value,
+                draftEvents: [],
+                session,
+                layout: false,
+            });
         } else {
             res.render("events/index", {
-            events: result.value,
-            query: query,
-            category: null,
-            timeframe: null,
-            session: (req as any).session,
-            pageError: null
-        });
-    }
+                events: result.value,
+                draftEvents: [],
+                query,
+                category: null,
+                timeframe: null,
+                session,
+                pageError: null,
+            });
+        }
     }
 
-    async getFilteredEvents(req: Request, res: Response): Promise<void> {
-
+  
+        async getFilteredEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void> {
         const category = req.query.category as Category | undefined;
         const timeframe = req.query.timeframe as EventTimeFrame | undefined;
+        const user = session.authenticatedUser;
 
-        const result = await this.eventService.getFilteredEvents(category, timeframe)
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        const result = await this.eventService.getVisibleEventLists(
+            category,
+            timeframe,
+            user.userId,
+            user.role,
+        );
+
         if (result.ok === false) {
             res.status(400).json({ error: result.value.message });
             return;
         }
 
         if (req.get("HX-Request") === "true") {
-            res.render("partials/event-list", { events: result.value, layout: false});
+            res.render("partials/event-list", {
+                events: result.value.publishedEvents,
+                draftEvents: result.value.draftEvents,
+                session,
+                layout: false,
+            });
         } else {
             res.render("events/index", {
-            events: result.value,
-            category: category ?? null,
-            timeframe: timeframe ?? null,
-            query: null,
-            session: (req as any).session,
-            pageError: null
-        });
+                events: result.value.publishedEvents,
+                draftEvents: result.value.draftEvents,
+                category: category ?? null,
+                timeframe: timeframe ?? null,
+                query: null,
+                session,
+                pageError: null,
+            });
+        }
     }
-    }
-
 
     async toggleRSVPFromForm(
         req: Request,

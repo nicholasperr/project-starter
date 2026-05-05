@@ -24,6 +24,7 @@ export interface IEventService {
     cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>>;
     searchEvents(query: string): Promise<Result<IEvent[], EventError>>;
     getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): Promise<Result<IEvent[], EventError>>;
+    getVisibleEventLists(category: Category | undefined, timeframe: EventTimeFrame | undefined, userId: string, role: string): Promise<Result<{ publishedEvents: IEvent[]; draftEvents: IEvent[] }, EventError>>;
 }
 
 class EventService implements IEventService {
@@ -159,6 +160,86 @@ class EventService implements IEventService {
         return Ok(events)
     }
 
+        async getVisibleEventLists(
+        category: Category | undefined,
+        timeframe: EventTimeFrame | undefined,
+        userId: string,
+        role: string,
+    ): Promise<Result<{ publishedEvents: IEvent[]; draftEvents: IEvent[] }, EventError>> {
+        const results = await this.eventRepository.findAll();
+
+        if (results.ok === false) {
+            return results;
+        }
+
+        const validCategories = ["music", "sports", "academic", "social", "food", "arts", "networking", "other"];
+        if (category && !validCategories.includes(category)) {
+            return Err(InvalidInput("Category entered is not valid."));
+        }
+
+        const validTimeframes = ["all_upcoming", "this_week", "this_weekend"];
+        if (timeframe && !validTimeframes.includes(timeframe)) {
+            return Err(InvalidInput("Timeframe entered is not valid"));
+        }
+
+        const now = new Date();
+
+        const applyFilters = (event: IEvent): boolean => {
+            if (category && event.category !== category) {
+                return false;
+            }
+
+            if (timeframe === "all_upcoming" && event.startDatetime < now) {
+                return false;
+            }
+
+            if (timeframe === "this_week") {
+                const weekStart = new Date(now);
+                weekStart.setDate(now.getDate() - now.getDay());
+                weekStart.setHours(0, 0, 0, 0);
+
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 7);
+
+                if (event.startDatetime < weekStart || event.startDatetime >= weekEnd) {
+                    return false;
+                }
+            }
+
+            if (timeframe === "this_weekend") {
+                const day = event.startDatetime.getDay();
+                if (![0, 5, 6].includes(day)) {
+                    return false;
+                }
+            }
+
+            return true;
+        };
+
+        const publishedEvents = results.value
+            .filter((event) => event.status === "published")
+            .filter(applyFilters)
+            .sort((a, b) => a.startDatetime.getTime() - b.startDatetime.getTime());
+
+        const draftEvents = results.value
+            .filter((event) => event.status === "draft")
+            .filter((event) => {
+                if (role === "admin") {
+                    return true;
+                }
+
+                if (role === "staff") {
+                    return event.organizerId === userId;
+                }
+
+                return false;
+            })
+            .filter(applyFilters)
+            .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
+        return Ok({ publishedEvents, draftEvents });
+    }
+    
     async toggleRSVP(eventId: number, userId: string): Promise<Result<undefined, EventError>> {
         const eventResult = await this.eventRepository.findById(eventId);
         if (!eventResult.ok) {

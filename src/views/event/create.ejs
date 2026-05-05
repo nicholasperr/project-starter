@@ -1,78 +1,90 @@
-<section class="max-w-3xl p-6 border border-slate-200 rounded-2xl bg-white shadow-lg">
-  <h1 class="text-2xl font-bold mb-4"><%= pageTitle %></h1>
+<section class="mb-5 p-6 border-2 border-[#7ec0ce] rounded-2xl bg-[#16213e] shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_15px_#7ec0ce,0_0_30px_#7ec0ce]">
+  <h1 class="text-2xl font-bold mb-4 text-[#f1f1f1]"><%= pageTitle %></h1>
   
   <% if (pageError) { %>
-    <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded text-red-700">
+    <div class="mb-4 p-4 bg-[#B91717] border-2 border-[#B91717] rounded text-[#f1f1f1]">
       <%= pageError %>
     </div>
   <% } %>
   
   <form action="/events" method="post" class="space-y-4">
     <label class="block">
-      <span class="text-slate-700">Title</span>
-      <input type="text" name="title" value="<%= formValues?.title ?? '' %>" class="mt-1 block w-full border rounded p-2" required />
+      <span class="text-[#f1f1f1]">Title</span>
+      <input type="text" name="title" value="<%= formValues?.title ?? '' %>" class="mt-1 block w-full border-2 border-[#7ec0ce] rounded p-2 bg-[#16213e] text-[#f1f1f1]" required />
       <%- include('../partials/field-error', { message: errors?.title }) %>
     </label>
 
     <label class="block">
-      <span class="text-slate-700">Description</span>
-      <textarea name="description" class="mt-1 block w-full border rounded p-2" rows="4" required><%= formValues?.description ?? '' %></textarea>
+      <span class="text-[#f1f1f1]" >Description</span>
+      <div style="position:relative;" x-data="{ description: '' }"> 
+        <textarea name="description" class="mt-1 block w-full border-2 border-[#7ec0ce] rounded p-2 bg-[#16213e] text-[#f1f1f1]" rows="4" required x-model="description"><%= formValues?.description ?? '' %></textarea>
+        <span style="position:absolute; bottom: 5px; right: 5px;">
+          <span class="text-xs text-[#7ec0ce]"><span x-text="description.length"></span> characters</span>
+        </span>
+      </div>
+      
       <%- include('../partials/field-error', { message: errors?.description }) %>
     </label>
 
     <label class="block">
-      <span class="text-slate-700">Location</span>
-      <input type="text" name="location" value="<%= formValues?.location ?? '' %>" class="mt-1 block w-full border rounded p-2" required />
+      <span class="text-[#f1f1f1]">Location</span>
+      <input type="text" name="location" value="<%= formValues?.location ?? '' %>" class="mt-1 block w-full border-2 border-[#7ec0ce] rounded p-2 bg-[#16213e] text-[#f1f1f1]" required />
       <%- include('../partials/field-error', { message: errors?.location }) %>
     </label>
 
-    <label class="block">
-      <span class="text-slate-700">Category</span>
-      <select name="category" class="mt-1 block w-full border rounded p-2" required>
-        <option value="music" <%= (formValues?.category ?? '') === 'music' ? 'selected' : '' %>>music</option>
-        <option value="sports" <%= (formValues?.category ?? '') === 'sports' ? 'selected' : '' %>>sports</option>
-        <option value="technology" <%= (formValues?.category ?? '') === 'technology' ? 'selected' : '' %>>technology</option>
-        <option value="art" <%= (formValues?.category ?? '') === 'art' ? 'selected' : '' %>>art</option>
-        <option value="education" <%= (formValues?.category ?? '') === 'education' ? 'selected' : '' %>>education</option>
-        <option value="health" <%= (formValues?.category ?? '') === 'health' ? 'selected' : '' %>>health</option>
-        <option value="business" <%= (formValues?.category ?? '') === 'business' ? 'selected' : '' %>>business</option>
-        <option value="food" <%= (formValues?.category ?? '') === 'food' ? 'selected' : '' %>>food</option>
-        <option value="other" <%= (formValues?.category ?? '') === 'other' ? 'selected' : '' %>>other</option>
-      </select>
-      <%- include('../partials/field-error', { message: errors?.category }) %>
-    </label>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <label class="block">
+        <span class="text-[#f1f1f1]">Category</span>
+        <select name="category" class="mt-1 block w-full border-2 border-[#7ec0ce] rounded p-2 bg-[#16213e] text-[#f1f1f1]" required>
+          <option value="music" <%= (formValues?.category ?? '') === 'music' ? 'selected' : '' %>>music</option>
+          <option value="sports" <%= (formValues?.category ?? '') === 'sports' ? 'selected' : '' %>>sports</option>
+          <option value="technology" <%= (formValues?.category ?? '') === 'technology' ? 'selected' : '' %>>technology</option>
+          <option value="art" <%= (formValues?.category ?? '') === 'art' ? 'selected' : '' %>>art</option>
+          <option value="education" <%= (formValues?.category ?? '') === 'education' ? 'selected' : '' %>>education</option>
+          <option value="health" <%= (formValues?.category ?? '') === 'health' ? 'selected' : '' %>>health</option>
+          <option value="business" <%= (formValues?.category ?? '') === 'business' ? 'selected' : '' %>>business</option>
+          <option value="food" <%= (formValues?.category ?? '') === 'food' ? 'selected' : '' %>>food</option>
+          <option value="other" <%= (formValues?.category ?? '') === 'other' ? 'selected' : '' %>>other</option>
+        </select>
+        <%- include('../partials/field-error', { message: errors?.category }) %>
+      </label>
+
+      <label class="block">
+        <span class="text-[#f1f1f1]">Status</span>
+        <select name="status" class="mt-1 block w-full border-2 border-[#7ec0ce] rounded p-2 bg-[#16213e] text-[#f1f1f1]">
+          <option value="draft" <%= (formValues?.status ?? '') === 'draft' ? 'selected' : '' %>>draft</option>
+          <option value="published" <%= (formValues?.status ?? '') === 'published' ? 'selected' : '' %>>published</option>
+          <option value="cancelled" <%= (formValues?.status ?? '') === 'cancelled' ? 'selected' : '' %>>cancelled</option>
+          <option value="past" <%= (formValues?.status ?? '') === 'past' ? 'selected' : '' %>>past</option>
+        </select>
+        <%- include('../partials/field-error', { message: errors?.status }) %>
+      </label>
+    </div>
 
     <label class="block">
-      <span class="text-slate-700">Status</span>
-      <select name="status" class="mt-1 block w-full border rounded p-2">
-        <option value="draft" <%= (formValues?.status ?? '') === 'draft' ? 'selected' : '' %>>draft</option>
-        <option value="published" <%= (formValues?.status ?? '') === 'published' ? 'selected' : '' %>>published</option>
-        <option value="cancelled" <%= (formValues?.status ?? '') === 'cancelled' ? 'selected' : '' %>>cancelled</option>
-        <option value="past" <%= (formValues?.status ?? '') === 'past' ? 'selected' : '' %>>past</option>
-      </select>
-      <%- include('../partials/field-error', { message: errors?.status }) %>
-    </label>
-
-    <label class="block">
-      <span class="text-slate-700">Capacity</span>
-      <input type="number" name="capacity" value="<%= formValues?.capacity ?? '' %>" class="mt-1 block w-full border rounded p-2" />
+      <span class="text-[#f1f1f1]">Capacity</span>
+      <input type="number" name="capacity" value="<%= formValues?.capacity ?? '' %>" class="mt-1 block w-full border-2 border-[#7ec0ce] rounded p-2 bg-[#16213e] text-[#f1f1f1]" />
       <%- include('../partials/field-error', { message: errors?.capacity }) %>
     </label>
 
-    <label class="block">
-      <span class="text-slate-700">Start</span>
-      <input type="datetime-local" name="startDatetime" value="<%= formValues?.startDatetime ?? '' %>" class="mt-1 block w-full border rounded p-2" required />
-      <%- include('../partials/field-error', { message: errors?.startDatetime }) %>
-    </label>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <label class="block">
+        <span class="text-[#f1f1f1]">Start</span>
+        <input type="datetime-local" name="startDatetime" value="<%= formValues?.startDatetime ?? '' %>" class="mt-1 block w-full border-2 border-[#7ec0ce] rounded p-2 bg-[#16213e] text-[#f1f1f1]" required />
+        <%- include('../partials/field-error', { message: errors?.startDatetime }) %>
+      </label>
 
-    <label class="block">
-      <span class="text-slate-700">End</span>
-      <input type="datetime-local" name="endDatetime" value="<%= formValues?.endDatetime ?? '' %>" class="mt-1 block w-full border rounded p-2" required />
-      <%- include('../partials/field-error', { message: errors?.endDatetime }) %>
-    </label>
+      <label class="block">
+        <span class="text-[#f1f1f1]">End</span>
+        <input type="datetime-local" name="endDatetime" value="<%= formValues?.endDatetime ?? '' %>" class="mt-1 block w-full border-2 border-[#7ec0ce] rounded p-2 bg-[#16213e] text-[#f1f1f1]" required />
+        <%- include('../partials/field-error', { message: errors?.endDatetime }) %>
+      </label>
+    </div>
 
     <input type="hidden" name="organizerId" value="<%= formValues?.organizerId ?? session.authenticatedUser.userId %>" />
-
-    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Create Event</button>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <button type="submit" class="px-4 py-2 bg-[#df3a9e] text-[#f1f1f1] font-medium cursor-pointer hover:bg-[#d12c90] rounded">Create Event</button>
+      <a href="/events" class="px-4 py-2 border-2 border-[#df3a9e] text-[#df3a9e] font-medium cursor-pointer hover:bg-[#242945] rounded text-center">Cancel</a>
+    </div>
   </form>
 </section>

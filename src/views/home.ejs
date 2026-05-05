@@ -1,98 +1,90 @@
-<section class="mb-5 p-6 border border-slate-200 rounded-2xl bg-gradient-to-b from-white to-slate-50 shadow-lg">
-  <h1 class="text-3xl font-bold text-slate-900 mb-3">Welcome to Project Starter</h1>
-  <p class="text-slate-500">
-    You are signed in and ready to build. This placeholder page is where your
-    project's main content will go.
-  </p>
-  <% if (session.authenticatedUser) { %>
-    <p class="text-slate-500 mt-2 mb-0">
-      Signed in as <strong class="text-slate-700"><%= session.authenticatedUser.displayName %></strong>
-      (<%= session.authenticatedUser.email %>, role:
-      <strong class="text-slate-700"><%= session.authenticatedUser.role %></strong>).
-    </p>
-  <% } %>
+<section class="mb-6 text-center">
+  <h1 class="evently-logo text-6xl text-white">EVENTLY</h1>
 </section>
 
 <% if (pageError) { %>
   <%- include("partials/error", { message: pageError }) %>
 <% } %>
 
-<section class="max-w-3xl p-6 border border-slate-200 rounded-2xl bg-white shadow-lg">
-  <div class="mb-4">
-    <h2 class="text-xl font-semibold mb-2">Getting Started</h2>
-    <p class="text-slate-500">
-      This starter application provides authentication and role-based authorization
-      out of the box. Here are some ideas for where to begin:
-    </p>
-  </div>
+<% const currentUser = session.authenticatedUser; %>
 
-  <ul class="list-disc pl-5 space-y-2 text-slate-700">
-    <li>Replace this page with your project's main dashboard or landing page.</li>
-    <li>Add new routes in <code class="bg-slate-100 px-1 rounded text-sm">src/app.ts</code> and protect them with
-      <code class="bg-slate-100 px-1 rounded text-sm">requireAuthenticated</code> or <code class="bg-slate-100 px-1 rounded text-sm">requireRole</code>.</li>
-    <li>Create new EJS views in <code class="bg-slate-100 px-1 rounded text-sm">src/views/</code>.</li>
-    <li>Add your own models, services, and controllers under <code class="bg-slate-100 px-1 rounded text-sm">src/</code>.</li>
-    <li>Use the Prisma schema in <code class="bg-slate-100 px-1 rounded text-sm">prisma/schema.prisma</code> to define your database tables.</li>
-  </ul>
-</section>
+<section class="grid gap-8 md:grid-cols-2">
+  <% if (currentUser && currentUser.role === "user") { %>
+    <div class="evently-card rounded-2xl p-5">
+      <h2 class="mb-4 border-2 border-[#7ec0ce] px-4 py-2 text-2xl text-[#f1f1f1]">
+        My Upcoming RSVPs
+      </h2>
 
-<section class="max-w-3xl mt-5 p-6 border border-slate-200 rounded-2xl bg-white shadow-lg" x-data="{ open: false }">
-  <button
-    @click="open = !open"
-    class="w-full flex items-center justify-between text-left bg-transparent border-0 p-0 cursor-pointer"
-  >
-    <h2 class="text-xl font-semibold">Alpine.js Demo</h2>
-    <span class="text-slate-400 text-sm" x-text="open ? 'Hide' : 'Show'">Show</span>
-  </button>
+      <div class="rounded-lg bg-[#0d1525] p-4 text-[#7ec0ce]">
+        <p class="mb-3 text-sm">
+          See the events you RSVP’d to, cancel RSVPs, and review your upcoming plans.
+        </p>
 
-  <div x-show="open" x-transition class="mt-4">
-    <p class="text-slate-500 mb-3">
-      Alpine.js is included via CDN and ready to use. This collapsible section is
-      a quick demonstration. Use <code class="bg-slate-100 px-1 rounded text-sm">x-data</code>,
-      <code class="bg-slate-100 px-1 rounded text-sm">x-show</code>,
-      <code class="bg-slate-100 px-1 rounded text-sm">@click</code>, and other
-      Alpine directives directly in your EJS templates.
-    </p>
-    <div x-data="{ count: 0 }" class="flex items-center gap-3">
-      <button
-        @click="count++"
-        class="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium cursor-pointer hover:bg-blue-700 text-sm"
+        <a
+          href="/my-rsvps"
+          class="text-[#df3a9e] font-bold no-underline hover:text-[#f1f1f1]"
+        >
+          VIEW ALL RSVPS
+        </a>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="evently-card rounded-2xl p-5">
+      <h2 class="mb-4 border-2 border-[#7ec0ce] px-4 py-2 text-2xl text-[#f1f1f1]">
+        My Upcoming Events
+      </h2>
+
+      <div class="rounded-lg bg-[#0d1525] p-4 text-[#7ec0ce]">
+        <p class="mb-3 text-sm">
+          View the events you manage, including drafts that are not visible to members yet.
+        </p>
+
+        <a
+          href="/events"
+          class="text-[#df3a9e] font-bold no-underline hover:text-[#f1f1f1]"
+        >
+          VIEW ALL MY EVENTS
+        </a>
+      </div>
+    </div>
+  <% } %>
+
+  <div class="evently-card rounded-2xl p-5">
+    <h2 class="mb-4 border-2 border-[#7ec0ce] px-4 py-2 text-2xl text-[#f1f1f1]">
+      All Upcoming Events
+    </h2>
+
+    <div class="rounded-lg bg-[#0d1525] p-4 text-[#7ec0ce]">
+      <p class="mb-3 text-sm">
+        Browse all published upcoming events and open event detail pages.
+      </p>
+
+      <a
+        href="/events"
+        class="text-[#df3a9e] font-bold no-underline hover:text-[#f1f1f1]"
       >
-        Clicked: <span x-text="count">0</span>
-      </button>
-      <span class="text-sm text-slate-500">A simple Alpine.js counter</span>
+        VIEW ALL EVENTS
+      </a>
     </div>
   </div>
 </section>
 
-
-<section class="max-w-3xl mt-5 p-6 border border-slate-200 rounded-2xl bg-white shadow-lg">
-  <h2 class="text-xl font-semibold mb-3">Sprint 1 Event Links</h2>
-  <ul class="list-disc pl-5 space-y-2 text-slate-700">
-    <li><a class="text-blue-700 hover:underline" href="/events/1">View published event (Event 1)</a></li>
-    <li><a class="text-blue-700 hover:underline" href="/events/2">View draft event (Event 2)</a></li>
-  </ul>
-</section>
-
-
-<section class="max-w-3xl mt-5 p-6 border border-slate-200 rounded-2xl bg-white shadow-lg">
-  <h2 class="text-xl font-semibold mb-3">Quick Links</h2>
-
-  <div class="flex gap-3 flex-wrap">
+<section class="mt-8 flex flex-wrap justify-center gap-6">
+  <% if (currentUser && (currentUser.role === "admin" || currentUser.role === "staff")) { %>
     <a
       href="/new"
-      class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white font-medium no-underline hover:bg-blue-700"
+      class="evently-outline rounded-lg px-6 py-2 text-xl font-bold no-underline"
     >
-      New Event
+      NEW EVENT
     </a>
+  <% } %>
 
-    <% if (session.authenticatedUser && session.authenticatedUser.role === "user") { %>
-      <a
-        href="/my-rsvps"
-        class="inline-flex items-center px-4 py-2 rounded-lg bg-slate-700 text-white font-medium no-underline hover:bg-slate-800"
-      >
-        View RSVPs
-      </a>
-    <% } %>
-  </div>
+  <% if (currentUser && currentUser.role === "admin") { %>
+    <a
+      href="/admin/users"
+      class="evently-outline rounded-lg px-6 py-2 text-xl font-bold no-underline"
+    >
+      MANAGE USERS
+    </a>
+  <% } %>
 </section>
