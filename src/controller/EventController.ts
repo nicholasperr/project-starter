@@ -23,14 +23,9 @@ export interface IEventController {
     publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
     cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
     showRSVPDashboard(res: Response, session: IAppBrowserSession):  Promise<void>;
-<<<<<<< task/update-home-page
     showHomePage(res: Response, session: IAppBrowserSession): Promise<void>;
-    searchEvents(req: Request, res: Response): Promise<void>;
-    getFilteredEvents(req: Request, res: Response): Promise<void>;
-=======
     searchEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
     getFilteredEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
->>>>>>> dev
 }
 
 class EventController implements IEventController {
@@ -404,7 +399,6 @@ class EventController implements IEventController {
         res.redirect(`/events/${eventId}`);
     }
 
-<<<<<<< task/update-home-page
     async showHomePage(res: Response, session: IAppBrowserSession): Promise<void> {
         const user = session.authenticatedUser;
 
@@ -437,10 +431,7 @@ class EventController implements IEventController {
         });
     }
 
-    async searchEvents(req: Request, res: Response){
-=======
     async searchEvents(req: Request, res: Response, session: IAppBrowserSession){
->>>>>>> dev
         
         const query = (req.query.query as string ?? "")
 
