@@ -265,40 +265,33 @@ class ExpressApp implements IApp {
         this.eventController.showEventCreateForm(res, browserSession);
       }),
     );
+    
     this.app.get(
-      "/events/search",
-      
-      asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
-          return;
-        }
+        "/events/search",
+        
+        asyncHandler(async (req, res) => {
+            if (!this.requireAuthenticated(req, res)) {
+            return;
+            }
 
-        this.eventController.searchEvents(req, res);
-      })
-    );
+            const browserSession = recordPageView(sessionStore(req));
+            this.eventController.searchEvents(req, res, browserSession);
+        })
+        );
+    
     this.app.get(
-      "/events",
-      asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
-          return;
-        }
-        this.logger.info(`GET /events`);
+        "/events",
+        asyncHandler(async (req, res) => {
+            if (!this.requireAuthenticated(req, res)) {
+            return;
+            }
+            this.logger.info(`GET /events`);
 
-        this.eventController.getFilteredEvents(req, res);
-      })
-    );
-      this.app.get(
-      "/events/:id",
-      asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
-          return;
-        }
-        this.logger.info(`GET /events/${req.params.id}`);
+            const browserSession = recordPageView(sessionStore(req));
+            this.eventController.getFilteredEvents(req, res, browserSession);
+        })
+        );
 
-        const browserSession = recordPageView(sessionStore(req));
-        this.eventController.showEventDetail(req, res, browserSession);
-      }),
-    );
 
     this.app.post(
       "/events/:id/publish",
