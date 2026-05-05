@@ -22,9 +22,6 @@
         </a>
         <div class="flex items-center gap-3 flex-wrap">
           <% if (session?.authenticatedUser) { %>
-            <% if (session.authenticatedUser.role === "admin") { %>
-              <a href="/admin/users" class="text-[#7ec0ce] font-semibold no-underline hover:text-[#4685FF]">Manage Users</a>
-            <% } %>
             <span class="text-[#7ec0ce]">
               Signed in as <strong class="text-[#f1f1f1]"><%= session.authenticatedUser.displayName %></strong>
               (<%= session.authenticatedUser.role %>)
@@ -32,7 +29,7 @@
             <form method="post" action="/logout" class="m-0">
               <button
                 type="submit"
-                class="px-3.5 py-2 rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#7ec0ce] shadow-[0_0_3px_#7ec0ce] cursor-pointer hover:bg-[#214F82] text-sm font-medium"
+                class="px-3.5 py-2 rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#95CFDB] shadow-[0_0_3px_#7ec0ce] cursor-pointer hover:bg-[#214F82] text-sm font-medium"
               >
                 Log out
               </button>
