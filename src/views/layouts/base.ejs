@@ -3,43 +3,110 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Project Starter</title>
+    <title>Evently</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Megrim&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+
+    <style>
+      .evently-logo {
+        font-family: "Megrim", cursive;
+        text-shadow: 0 0 24px #df3a9e, 0 0 24px #df3a9e, 0 0 24px #df3a9e, 0 0 24px #df3a9e;
+      }
+
+      .evently-card {
+        border: 2px solid #7ec0ce;
+        background: #16213e;
+        box-shadow:
+          0 0 2px #7ec0ce,
+          inset 0 0 2px #7ec0ce,
+          0 0 5px #7ec0ce,
+          0 0 15px #7ec0ce,
+          0 0 30px #7ec0ce;
+      }
+
+      .evently-input {
+        border: 2px solid #7ec0ce;
+        background: #16213e;
+        color: #f1f1f1;
+      }
+
+      .evently-input:focus {
+        outline: 2px solid rgba(126, 192, 206, 0.2);
+        border-color: #7ec0ce;
+      }
+
+      .evently-primary {
+        background: #df3a9e;
+        color: #f1f1f1;
+      }
+
+      .evently-primary:hover {
+        background: #d12c90;
+      }
+
+      .evently-outline {
+        border: 2px solid #7ec0ce;
+        background: #16213e;
+        color: #7ec0ce;
+        box-shadow:
+          0 0 2px #7ec0ce,
+          inset 0 0 2px #7ec0ce,
+          0 0 5px #7ec0ce,
+          0 0 15px #7ec0ce,
+          0 0 30px #7ec0ce;
+      }
+
+      .evently-outline:hover {
+        background: #214F82;
+      }
+
+      .text {
+        color: #7ec0ce;
+      }
+    </style>
   </head>
-  <body class="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 text-slate-900 p-6">
+
+  <body class="min-h-screen bg-[#0d1525] text-[#f1f1f1] p-6">
     <div class="max-w-5xl mx-auto">
       <nav class="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <a
           href="<%= session?.authenticatedUser ? '/home' : '/login' %>"
-          class="inline-flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white border border-slate-200 shadow-lg font-bold text-slate-900 no-underline"
+          class="inline-flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold no-underline"
         >
-          <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-b from-blue-400 to-blue-600"></span>
-          Project Starter
+          <span class="evently-logo text-white text-5xl">Evently</span>
         </a>
+
         <div class="flex items-center gap-3 flex-wrap">
           <% if (session?.authenticatedUser) { %>
+            <a href="/events" class="text-[#7ec0ce] font-semibold no-underline hover:text-[#4685FF]">Events</a>
+
             <% if (session.authenticatedUser.role === "admin") { %>
-              <a href="/admin/users" class="text-blue-700 font-semibold no-underline hover:underline">Manage Users</a>
+              <a href="/admin/users" class="text-[#7ec0ce] font-semibold no-underline hover:text-[#4685FF]">Manage Users</a>
             <% } %>
-            <span class="text-slate-500">
-              Signed in as <strong class="text-slate-700"><%= session.authenticatedUser.displayName %></strong>
+
+            <span class="text-[#7ec0ce]">
+              Signed in as <strong class="text-[#f1f1f1]"><%= session.authenticatedUser.displayName %></strong>
               (<%= session.authenticatedUser.role %>)
             </span>
+
             <form method="post" action="/logout" class="m-0">
               <button
                 type="submit"
-                class="px-3.5 py-2 rounded-lg bg-white text-blue-700 border border-slate-200 cursor-pointer hover:bg-blue-50 text-sm font-medium"
+                class="px-3.5 py-2 rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#7ec0ce] shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_15px_#7ec0ce,0_0_30px_#7ec0ce] cursor-pointer hover:bg-[#214F82] text-sm font-medium"
               >
                 Log out
               </button>
             </form>
           <% } else { %>
-            <a href="/login" class="text-blue-700 font-semibold no-underline hover:underline">Log in</a>
+            <a href="/login" class="text-[#7ec0ce] font-semibold no-underline hover:text-[#4685FF]">Log in</a>
           <% } %>
         </div>
       </nav>
+
       <main class="max-w-5xl mx-auto"><%- body %></main>
     </div>
   </body>

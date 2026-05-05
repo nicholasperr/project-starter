@@ -5,7 +5,7 @@ import type { IAppBrowserSession } from "../session/AppSession";
 import { Category } from "../model/event";
 import { EventTimeFrame } from "../service/EventService";
 import { EventError, Unauthorized, InvalidInput } from "../lib/errors";
-import { time } from "node:console";
+import { IRSVP } from "../model/rsvp";
 
 export interface IEventController {
     createEvent(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
@@ -23,8 +23,8 @@ export interface IEventController {
     publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
     cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
     showRSVPDashboard(res: Response, session: IAppBrowserSession):  Promise<void>;
-    searchEvents(req: Request, res: Response): Promise<void>;
-    getFilteredEvents(req: Request, res: Response): Promise<void>;
+    searchEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
+    getFilteredEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
 }
 
 class EventController implements IEventController {
@@ -33,10 +33,42 @@ class EventController implements IEventController {
         private readonly logger: ILoggingService,
     ) {}
 
+    private isHtmxRequest(req: Request): boolean {
+        return req.get("HX-Request") === "true";
+    }
+
+    private countGoingRsvps(rsvps: IRSVP[]): number {
+        return rsvps.filter((rsvp) => rsvp.status === "going").length;
+    }
+
+    private async renderLifecyclePanel(
+        req: Request,
+        res: Response,
+        eventId: number,
+        session: IAppBrowserSession,
+        errorMessage: string | null = null,
+    ): Promise<void> {
+        const eventResult = await this.eventService.getEventById(eventId);
+
+        if (eventResult.ok === false) {
+            res.status(404).render("partials/error", {
+                message: eventResult.value.message,
+                layout: false,
+            });
+            return;
+        }
+
+        res.status(200).render("partials/event-lifecycle-panel", {
+            layout: false,
+            event: eventResult.value,
+            session,
+            errorMessage,
+        });
+    }
+
     async showEventDetail(req: Request, res: Response, session: IAppBrowserSession){
         this.logger.info(`Showing event detail for event ID: ${req.params.id}`);
         const eventId = Number(req.params.id);
-        console.log("Event ID from params:", req.params.id, "Parsed event ID:", eventId);
 
         if (Number.isNaN(eventId)) {
             res.status(400).render("partials/error", {
@@ -71,16 +103,16 @@ class EventController implements IEventController {
         }
 
         const rsvpsResult = await this.eventService.getRSVPsForEvent(eventId);
-        const currentRsvp =
-            rsvpsResult.ok
-                ? rsvpsResult.value.find((rsvp) => rsvp.userId === user.userId) ?? null
-                : null;
+        const rsvps = rsvpsResult.ok ? rsvpsResult.value : [];
+        const currentRsvp = rsvps.find((rsvp) => rsvp.userId === user.userId) ?? null;
+        const goingCount = this.countGoingRsvps(rsvps);
 
         res.render("event/show", {
             session,
             pageError: null,
             event: result.value,
             currentRsvp,
+            goingCount,
             errorMessage: null,
         });
     }
@@ -109,10 +141,20 @@ class EventController implements IEventController {
         const result = await this.eventService.publishEvent(eventId, user.userId, user.role);
 
         if (!result.ok) {
+            if (this.isHtmxRequest(req)) {
+                await this.renderLifecyclePanel(req, res, eventId, session, result.value.message);
+                return;
+            }
+
             res.status(400).render("partials/error", {
                 message: result.value.message,
                 layout: false,
             });
+            return;
+        }
+
+        if (this.isHtmxRequest(req)) {
+            await this.renderLifecyclePanel(req, res, eventId, session);
             return;
         }
 
@@ -143,6 +185,11 @@ class EventController implements IEventController {
         const result = await this.eventService.cancelEvent(eventId, user.userId, user.role);
 
         if (!result.ok) {
+            if (this.isHtmxRequest(req)) {
+                await this.renderLifecyclePanel(req, res, eventId, session, result.value.message);
+                return;
+            }
+
             res.status(400).render("partials/error", {
                 message: result.value.message,
                 layout: false,
@@ -150,9 +197,14 @@ class EventController implements IEventController {
             return;
         }
 
+        if (this.isHtmxRequest(req)) {
+            await this.renderLifecyclePanel(req, res, eventId, session);
+            return;
+        }
+
         res.redirect(`/events/${eventId}`);
     }
-    
+
     async createEvent(req: Request, res: Response, session: IAppBrowserSession) {
         const {
             title,
@@ -398,56 +450,81 @@ class EventController implements IEventController {
         res.redirect(`/events/${eventId}`);
     }
 
-    async searchEvents(req: Request, res: Response){
-        
-        const query = (req.query.query as string ?? "")
+            async searchEvents(req: Request, res: Response, session: IAppBrowserSession) {
+        const query = (req.query.query as string ?? "");
 
         const result = await this.eventService.searchEvents(query);
         if (result.ok === false) {
-            res.status(400).json({ error: result.value});
+            res.status(400).json({ error: result.value });
             return;
         }
 
         if (req.get("HX-Request") === "true") {
-            res.render("partials/event-list", { events: result.value, layout: false});
-        } else { 
+            res.render("partials/event-list", {
+                events: result.value,
+                draftEvents: [],
+                session,
+                layout: false,
+            });
+        } else {
             res.render("events/index", {
-            events: result.value,
-            query: query,
-            category: null,
-            timeframe: null,
-            session: (req as any).session,
-            pageError: null
-        });
-    }
+                events: result.value,
+                draftEvents: [],
+                query,
+                category: null,
+                timeframe: null,
+                session,
+                pageError: null,
+            });
+        }
     }
 
-    async getFilteredEvents(req: Request, res: Response): Promise<void> {
-
+  
+        async getFilteredEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void> {
         const category = req.query.category as Category | undefined;
         const timeframe = req.query.timeframe as EventTimeFrame | undefined;
+        const user = session.authenticatedUser;
 
-        const result = await this.eventService.getFilteredEvents(category, timeframe)
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        const result = await this.eventService.getVisibleEventLists(
+            category,
+            timeframe,
+            user.userId,
+            user.role,
+        );
+
         if (result.ok === false) {
             res.status(400).json({ error: result.value.message });
             return;
         }
 
         if (req.get("HX-Request") === "true") {
-            res.render("partials/event-list", { events: result.value, layout: false});
-        } else { 
+            res.render("partials/event-list", {
+                events: result.value.publishedEvents,
+                draftEvents: result.value.draftEvents,
+                session,
+                layout: false,
+            });
+        } else {
             res.render("events/index", {
-            events: result.value,
-            category: category ?? null,
-            timeframe: timeframe ?? null, 
-            query: null,
-            session: (req as any).session,
-            pageError: null
-        }); 
-    }
+                events: result.value.publishedEvents,
+                draftEvents: result.value.draftEvents,
+                category: category ?? null,
+                timeframe: timeframe ?? null,
+                query: null,
+                session,
+                pageError: null,
+            });
+        }
     }
 
-    
     async toggleRSVPFromForm(
         req: Request,
         res: Response,

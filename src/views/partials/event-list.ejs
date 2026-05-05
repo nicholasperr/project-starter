@@ -1,14 +1,189 @@
-<% if (events.length === 0) { %>
-    <p class="text-slate-500">No events found.</p>
+<% const currentUser = session?.authenticatedUser; %>
+<% const visibleDraftEvents = draftEvents ?? []; %>
+<% const managerCanSeeMyEvents = currentUser && (currentUser.role === "admin" || currentUser.role === "staff"); %>
+
+<%
+  const myPublishedEvents = managerCanSeeMyEvents
+    ? events.filter(event => event.organizerId === currentUser.userId)
+    : [];
+
+  const myDraftEvents = managerCanSeeMyEvents
+    ? visibleDraftEvents.filter(event => event.organizerId === currentUser.userId)
+    : [];
+
+  const myEvents = [...myDraftEvents, ...myPublishedEvents];
+
+  const allEvents = events;
+%>
+
+<div class="space-y-8">
+  <% if (managerCanSeeMyEvents) { %>
+    <section class="grid gap-8 lg:grid-cols-2">
+      <div>
+        <h2 class="mb-4 border-2 border-[#7ec0ce] px-4 py-2 text-2xl font-bold text-[#f1f1f1]">
+          My Events
+        </h2>
+
+        <% if (myEvents.length === 0) { %>
+          <div class="rounded-lg bg-[#0d1525] p-4 text-[#7ec0ce]">
+            No events found.
+          </div>
+        <% } else { %>
+          <ul class="max-h-[360px] space-y-3 overflow-y-auto rounded-lg border-2 border-[#7ec0ce] bg-[#0d1525] p-3">
+            <% myEvents.forEach(event => { %>
+              <li class="grid gap-3 rounded bg-[#16213e] p-3 sm:grid-cols-[1.2fr_1fr_auto] sm:items-center">
+                <div>
+                  <a href="/events/<%= event.id %>" class="font-bold text-[#f1f1f1] no-underline hover:text-[#df3a9e]">
+                    <%= event.title %>
+                  </a>
+                  <p class="text-xs text-[#f1f1f1]">
+                    <%= event.startDatetime.toLocaleDateString() %>
+                  </p>
+                </div>
+
+                <div class="text-sm text-[#7ec0ce]">
+                  <p>Capacity <%= event.capacity === null ? "No limit" : event.capacity %></p>
+                  <p class="capitalize">
+                    Status:
+                    <span class="<%= event.status === 'draft' ? 'text-yellow-300' : event.status === 'published' ? 'text-green-300' : event.status === 'cancelled' ? 'text-red-300' : 'text-[#f1f1f1]' %>">
+                      <%= event.status %>
+                    </span>
+                  </p>
+                </div>
+
+                <a
+                  href="/events/<%= event.id %>"
+                  class="text-sm font-bold text-[#7ec0ce] no-underline hover:text-[#df3a9e]"
+                >
+                  EDIT EVENT
+                </a>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+
+        <div class="mt-4 text-center">
+          <a href="/events" class="font-bold text-[#df3a9e] no-underline hover:text-[#f1f1f1]">
+            VIEW ALL MY EVENTS
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="mb-4 border-2 border-[#7ec0ce] px-4 py-2 text-2xl font-bold text-[#f1f1f1]">
+          All Events
+        </h2>
+
+        <% if (allEvents.length === 0) { %>
+          <div class="rounded-lg bg-[#0d1525] p-4 text-[#7ec0ce]">
+            No published events found.
+          </div>
+        <% } else { %>
+          <ul class="max-h-[360px] space-y-3 overflow-y-auto rounded-lg border-2 border-[#7ec0ce] bg-[#0d1525] p-3">
+            <% allEvents.forEach(event => { %>
+              <li class="grid gap-3 rounded bg-[#16213e] p-3 sm:grid-cols-[1.2fr_1fr_auto] sm:items-center">
+                <div>
+                  <a href="/events/<%= event.id %>" class="font-bold text-[#f1f1f1] no-underline hover:text-[#df3a9e]">
+                    <%= event.title %>
+                  </a>
+                  <p class="text-xs text-[#f1f1f1]">
+                    <%= event.startDatetime.toLocaleDateString() %>
+                  </p>
+                </div>
+
+                <div class="text-sm text-[#7ec0ce]">
+                  <p>Capacity <%= event.capacity === null ? "No limit" : event.capacity %></p>
+                  <p>
+                    <%= event.location %>
+                  </p>
+                </div>
+
+                <a
+                  href="/events/<%= event.id %>"
+                  class="text-sm font-bold text-[#7ec0ce] no-underline hover:text-[#df3a9e]"
+                >
+                  VIEW EVENT
+                </a>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+
+        <div class="mt-4 text-center">
+          <a href="/events" class="font-bold text-[#df3a9e] no-underline hover:text-[#f1f1f1]">
+            VIEW ALL EVENTS
+          </a>
+        </div>
+      </div>
+    </section>
   <% } else { %>
-    <ul class="space-y-4">
-      <% events.forEach(event => { %>
-        <li class="p-4 border border-slate-200 rounded-xl bg-slate-50">
-          <a href="/events/<%= event.id %>" class="text-lg font-semibold text-blue-600 hover:underline"><%= event.title %></a>
-          <p class="text-sm text-slate-500 mt-1"><%= event.location %> &middot; <%= event.startDatetime.toLocaleDateString() %> <%= event.startDatetime.toLocaleTimeString() %></p>
-          <p class="text-sm text-slate-600 mt-1"><%= event.description %></p>
-          <span class="text-xs text-slate-400"><%= event.categrory %></span>
-        </li>
-      <% }) %>
-    </ul>
+    <section>
+      <h2 class="mb-4 border-2 border-[#7ec0ce] px-4 py-2 text-2xl font-bold text-[#f1f1f1]">
+        All Upcoming Events
+      </h2>
+
+      <% if (allEvents.length === 0) { %>
+        <div class="rounded-lg bg-[#0d1525] p-4 text-[#7ec0ce]">
+          No published events found.
+        </div>
+      <% } else { %>
+        <ul class="max-h-[460px] space-y-3 overflow-y-auto rounded-lg border-2 border-[#7ec0ce] bg-[#0d1525] p-3">
+          <% allEvents.forEach(event => { %>
+            <li class="grid gap-3 rounded bg-[#16213e] p-3 sm:grid-cols-[1.2fr_1fr_1fr_auto] sm:items-center">
+              <div>
+                <a href="/events/<%= event.id %>" class="font-bold text-[#f1f1f1] no-underline hover:text-[#df3a9e]">
+                  <%= event.title %>
+                </a>
+                <p class="text-xs text-[#f1f1f1]">
+                  <%= event.startDatetime.toLocaleDateString() %>
+                </p>
+              </div>
+
+              <div class="text-sm text-[#f1f1f1]">
+                <p>Start: <%= event.startDatetime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) %></p>
+                <p>End: <%= event.endDatetime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) %></p>
+              </div>
+
+              <div class="text-sm font-bold text-[#7ec0ce]">
+                Capacity <%= event.capacity === null ? "No limit" : event.capacity %>
+              </div>
+
+              <a
+                href="/events/<%= event.id %>"
+                class="text-sm font-bold text-[#7ec0ce] no-underline hover:text-[#df3a9e]"
+              >
+                RSVP
+              </a>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+
+      <div class="mt-4 text-center">
+        <a href="/my-rsvps" class="font-bold text-[#df3a9e] no-underline hover:text-[#f1f1f1]">
+          VIEW ALL MY RSVPS
+        </a>
+      </div>
+    </section>
   <% } %>
+
+  <div class="mt-8 flex flex-wrap justify-center gap-4">
+    <% if (managerCanSeeMyEvents) { %>
+      <a
+        href="/new"
+        class="evently-outline rounded-lg px-6 py-2 font-bold no-underline"
+      >
+        NEW EVENT
+      </a>
+    <% } %>
+
+    <% if (currentUser && currentUser.role === "user") { %>
+      <a
+        href="/my-rsvps"
+        class="evently-outline rounded-lg px-6 py-2 font-bold no-underline"
+      >
+        MY RSVPS
+      </a>
+    <% } %>
+  </div>
+</div>
