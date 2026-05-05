@@ -41,32 +41,32 @@
     </h2>
 
     <dl class="grid gap-4 sm:grid-cols-2">
-      <div class="rounded-2xl border border-[#21325c] bg-[#0c1a35] p-4">
+      <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
         <dt class="font-bold text-[#7ec0ce]">Location</dt>
         <dd class="mt-1 text-[#f1f1f1]"><%= event.location %></dd>
       </div>
 
-      <div class="rounded-2xl border border-[#21325c] bg-[#0c1a35] p-4">
+      <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
         <dt class="font-bold text-[#7ec0ce]">Category</dt>
         <dd class="mt-1 capitalize text-[#f1f1f1]"><%= event.category %></dd>
       </div>
 
-      <div class="rounded-2xl border border-[#21325c] bg-[#0c1a35] p-4">
+      <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
         <dt class="font-bold text-[#7ec0ce]">Starts</dt>
         <dd class="mt-1 text-[#f1f1f1]"><%= event.startDatetime.toLocaleString() %></dd>
       </div>
 
-      <div class="rounded-2xl border border-[#21325c] bg-[#0c1a35] p-4">
+      <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
         <dt class="font-bold text-[#7ec0ce]">Ends</dt>
         <dd class="mt-1 text-[#f1f1f1]"><%= event.endDatetime.toLocaleString() %></dd>
       </div>
 
-      <div class="rounded-2xl border border-[#21325c] bg-[#0c1a35] p-4">
+      <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
         <dt class="font-bold text-[#7ec0ce]">Capacity</dt>
         <dd class="mt-1 text-[#f1f1f1]"><%= event.capacity === null ? "No limit" : event.capacity %></dd>
       </div>
 
-      <div class="rounded-2xl border border-[#21325c] bg-[#0c1a35] p-4">
+      <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
         <dt class="font-bold text-[#7ec0ce]">Organizer</dt>
         <dd class="mt-1 break-words text-[#f1f1f1]"><%= organizerName %></dd>
       </div>    
@@ -78,7 +78,7 @@
       Actions
     </h2>
 
-    <div class="rounded-2xl border border-[#21325c] bg-[#0c1a35] p-5">
+    <div class="p-0">
       <div id="rsvp-action">
         <%- include("../partials/rsvp-action", { event, session, currentRsvp, errorMessage }) %>
       </div>
