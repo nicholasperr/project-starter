@@ -174,6 +174,7 @@ class EventController implements IEventController {
             startDatetime,
             endDatetime,
             organizerId,
+            returnTo,
         } = req.body;
 
         const formValues = {
@@ -186,6 +187,7 @@ class EventController implements IEventController {
             startDatetime,
             endDatetime,
             organizerId,
+            returnTo,
         };
 
         const errors = this.validateEventForm(formValues);
@@ -223,16 +225,21 @@ class EventController implements IEventController {
             return;
         }
 
-        res.redirect("/events");
+        const safeReturnTo =
+            returnTo === "/my-events" || returnTo === "/events"
+                ? returnTo
+                : "/events";
+
+        res.redirect(safeReturnTo);
     }
 
     async showEventCreateForm(res: Response, session: IAppBrowserSession, pageError?: string, formData?: any) {
         res.render("event/create", {
             pageTitle: "Create Event",
             session: session,
-            formValues: {},
+            formValues: formData ?? {},
             errors: {},
-            pageError: null,
+            pageError: pageError ?? null,
         });
     }
 

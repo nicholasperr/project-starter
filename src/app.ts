@@ -262,7 +262,9 @@ class ExpressApp implements IApp {
         }
         this.logger.info(`GET /new`);
         const browserSession = recordPageView(sessionStore(req));
-        this.eventController.showEventCreateForm(res, browserSession);
+        this.eventController.showEventCreateForm(res, browserSession, undefined, {
+            returnTo: typeof req.query.returnTo === "string" ? req.query.returnTo : "/events",
+            });
       }),
     );
 

@@ -82,6 +82,7 @@
     </div>
 
     <input type="hidden" name="organizerId" value="<%= formValues?.organizerId ?? session.authenticatedUser.userId %>" />
+    <input type="hidden" name="returnTo" value="<%= formValues?.returnTo ?? '/events' %>" />
     <div class="grid gap-4 sm:grid-cols-2">
       <button type="submit" class="px-4 py-2 bg-[#df3a9e] text-[#f1f1f1] font-medium cursor-pointer hover:bg-[#d12c90] rounded">Create Event</button>
       <a href="/events" class="px-4 py-2 border-2 border-[#df3a9e] text-[#df3a9e] font-medium cursor-pointer hover:bg-[#242945] rounded text-center">Cancel</a>
