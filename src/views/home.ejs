@@ -59,7 +59,7 @@
 
         <div class="pt-4 border-t border-[#7ec0ce]">
           <a
-            href="<%= (isAdmin || isStaff) ? '/events' : '/my-rsvps' %>"
+            href="<%= (isAdmin || isStaff) ? '/my-events' : '/my-rsvps' %>"
             class="inline-flex items-center justify-center w-full rounded-lg bg-[#df3a9e] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#d12c90]"
           >
             <%= (isAdmin || isStaff) ? 'View my events' : 'View all RSVPs' %>

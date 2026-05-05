@@ -26,6 +26,7 @@ export interface IEventController {
     showHomePage(res: Response, session: IAppBrowserSession): Promise<void>;
     searchEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
     getFilteredEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
+    showMyEvents(res: Response, session: IAppBrowserSession): Promise<void>;
 }
 
 class EventController implements IEventController {
@@ -436,6 +437,45 @@ class EventController implements IEventController {
             adminEvents: homeDataResult.value.adminEvents,
             userRsvps: homeDataResult.value.userRsvps,
             upcomingEvents: homeDataResult.value.upcomingEvents,
+        });
+    }
+
+
+    async showMyEvents(res: Response, session: IAppBrowserSession): Promise<void> {
+        const user = session.authenticatedUser;
+
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        if (user.role !== "admin" && user.role !== "staff") {
+            res.status(403).render("partials/error", {
+                message: "Only admins and staff can view My Events.",
+                layout: false,
+            });
+            return;
+        }
+
+        const result = await this.eventService.getMyEvents(user.userId, user.role);
+
+        if (!result.ok) {
+            const error = result.value as EventError;
+
+            res.status(400).render("partials/error", {
+                message: error.message,
+                layout: false,
+            });
+            return;
+        }
+
+        res.render("events/my-events", {
+            session,
+            pageError: null,
+            events: result.value,
         });
     }
 

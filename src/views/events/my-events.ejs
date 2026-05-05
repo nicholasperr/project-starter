@@ -1,0 +1,85 @@
+<section class="mb-5 p-6 border-2 border-[white] rounded-2xl bg-[#16213e] shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce]">
+  <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-[#f1f1f1]">My Events</h1>
+      <p class="mt-2 text-sm text-[#7ec0ce]">
+        Events created by your account, including drafts and unpublished events.
+      </p>
+    </div>
+
+    <a
+      href="/new"
+      class="inline-flex items-center justify-center rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#e6faff] px-5 py-2 text-sm font-bold no-underline hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce]"
+    >
+      NEW EVENT
+    </a>
+  </div>
+
+  <% if (events.length === 0) { %>
+    <div class="rounded-3xl border border-[#33527c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
+      You have not created any events yet.
+    </div>
+  <% } else { %>
+    <ul class="space-y-4 rounded-2xl border-2 border-[#7ec0ce] bg-[#0d1525] p-5">
+      <% events.forEach(event => { %>
+        <li class="p-4 border border-[#33527c] rounded-xl bg-[#16213e] hover:border-[#7ec0ce] transition-colors">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <a
+                href="/events/<%= event.id %>"
+                class="text-lg font-semibold text-[#f1f1f1] hover:text-[#df3a9e] hover:underline"
+              >
+                <%= event.title %>
+              </a>
+
+              <p class="text-sm text-[#7ec0ce] mt-1">
+                <%= event.location %> &middot;
+                <%= event.startDatetime.toLocaleDateString() %>
+                <%= event.startDatetime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) %>
+              </p>
+
+              <p class="text-sm text-[#f1f1f1]/70 mt-1">
+                <%= event.description %>
+              </p>
+
+              <p class="text-xs text-[#7ec0ce]/70 mt-2 capitalize">
+                <%= event.category %>
+              </p>
+            </div>
+
+            <div class="flex flex-col items-start gap-2 sm:items-end">
+              <span
+                class="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.08em]
+                <%= event.status === 'published'
+                  ? 'border border-green-300 text-green-300'
+                  : event.status === 'draft'
+                    ? 'border border-yellow-300 text-yellow-300'
+                    : event.status === 'cancelled'
+                      ? 'border border-red-300 text-red-300'
+                      : 'border border-[#7ec0ce] text-[#7ec0ce]' %>"
+              >
+                <%= event.status %>
+              </span>
+
+              <a
+                href="/events/<%= event.id %>/edit"
+                class="text-sm font-bold text-[#7ec0ce] no-underline hover:text-[#df3a9e]"
+              >
+                EDIT EVENT
+              </a>
+            </div>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+
+  <div class="mt-8 flex justify-center">
+    <a
+      href="/home"
+      class="inline-flex items-center justify-center rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#e6faff] px-8 py-3 text-lg font-bold no-underline hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce]"
+    >
+      BACK HOME
+    </a>
+  </div>
+</section>

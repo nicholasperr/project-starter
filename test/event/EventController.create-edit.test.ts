@@ -53,7 +53,7 @@ function buildTestApp(): TestAppState {
   const eventRepository = CreateEventRepository();
   const rsvpRepository = CreateRSVPRepository();
   const eventService = CreateEventService(eventRepository, rsvpRepository);
-  const eventController = CreateEventController(eventService, CreateLoggingService());
+  const eventController = CreateEventController(eventService, CreateLoggingService(), CreateInMemoryUserRepository());
 
   const app = CreateApp(authController, eventController, CreateLoggingService()).getExpressApp();
   return { app, eventRepository };

@@ -29,6 +29,7 @@ export interface IEventService {
     }, EventError>>;
     searchEvents(query: string): Promise<Result<IEvent[], EventError>>;
     getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): Promise<Result<IEvent[], EventError>>;
+    getMyEvents(userId: string, role: string): Promise<Result<IEvent[], EventError>>;
 }
 
 class EventService implements IEventService {
@@ -44,6 +45,24 @@ class EventService implements IEventService {
 
     async getAllEvents() {
        return await this.eventRepository.findAll();
+    }
+
+    async getMyEvents(userId: string, role: string): Promise<Result<IEvent[], EventError>> {
+        if (role !== "admin" && role !== "staff") {
+            return Err(Unauthorized("Only admins and staff can view My Events"));
+        }
+
+        const result = await this.eventRepository.findAll();
+
+        if (!result.ok) {
+            return result;
+        }
+
+        const events = result.value
+            .filter((event) => event.organizerId === userId)
+            .sort((a, b) => a.startDatetime.getTime() - b.startDatetime.getTime());
+
+        return Ok(events);
     }
 
     async updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date) {
