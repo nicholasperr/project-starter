@@ -1,95 +1,107 @@
 <% if (pageError) { %>
-  <%- include("partials/error", { message: pageError }) %>
+  <div class="mb-6 rounded-3xl border border-[#B91717] bg-[#521212] p-5 text-[#f1f1f1] shadow-sm">
+    <p><%= pageError %></p>
+  </div>
 <% } %>
 
-<% const currentUser = session.authenticatedUser; %>
-
-<section class="mb-5 p-6 border-2 border-[#7ec0ce] rounded-2xl bg-[#16213e] shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_15px_#7ec0ce,0_0_30px_#7ec0ce]">
-  <div class="grid gap-6 md:grid-cols-2">
-    <% if (currentUser && currentUser.role === "user") { %>
-      <section class="rounded-xl border-2 border-[#7ec0ce] bg-[#0d1525] p-5">
-        <h2 class="mb-4 border-2 border-[#7ec0ce] px-4 py-2 text-2xl font-bold text-[#f1f1f1]">
-          My Upcoming RSVPs
-        </h2>
-
-        <div class="rounded-lg bg-[#16213e] p-4">
-          <p class="text-sm text-[#7ec0ce]">
-            View the events you have RSVP’d to and manage upcoming attendance.
+<div class="grid gap-6 xl:grid-cols-[1.05fr_0.95fr] xl:items-stretch">
+  <section class="space-y-6 h-full">
+    <div class="rounded-3xl border-2 border-[white] bg-[#16213e] p-6 shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_15px_#7ec0ce,0_0_30px_#7ec0ce] h-full flex flex-col">
+      <div class="flex flex-col gap-4 flex-grow">
+        <div>
+          <h2 class="text-xl font-semibold text-[#f1f1f1]"><%= (isAdmin || isStaff) ? "Your events" : "Your RSVPs" %></h2>
+          <p class="mt-2 text-sm text-[#9bb7d4]">
+            <%= (isAdmin || isStaff) ? "Events you created most recently." : "Upcoming RSVP'd events." %>
           </p>
-
-          <div class="mt-4 flex justify-center">
-            <a
-              href="/my-rsvps"
-              class="font-bold text-[#df3a9e] no-underline hover:text-[#f1f1f1]"
-            >
-              VIEW ALL RSVPS
-            </a>
-          </div>
         </div>
-      </section>
-    <% } else { %>
-      <section class="rounded-xl border-2 border-[#7ec0ce] bg-[#0d1525] p-5">
-        <h2 class="mb-4 border-2 border-[#7ec0ce] px-4 py-2 text-2xl font-bold text-[#f1f1f1]">
-          My Upcoming Events
-        </h2>
 
-        <div class="rounded-lg bg-[#16213e] p-4">
-          <p class="text-sm text-[#7ec0ce]">
-            View and manage events that you created, including drafts and upcoming published events.
-          </p>
-
-          <div class="mt-4 flex justify-center">
-            <a
-              href="/events"
-              class="font-bold text-[#df3a9e] no-underline hover:text-[#f1f1f1]"
-            >
-              VIEW ALL MY EVENTS
-            </a>
-          </div>
+        <div class="space-y-3 flex-grow">
+          <% if (isAdmin || isStaff) { %>
+            <% if (adminEvents.length === 0) { %>
+              <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
+                You haven't created any events yet. Create one to get started.
+              </div>
+            <% } else { %>
+              <% adminEvents.forEach((event) => { %>
+                <article class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5">
+                  <div class="flex items-start justify-between gap-3">
+                    <a href="/events/<%= event.id %>" class="text-lg font-semibold text-[#f1f1f1] hover:text-[#df3a9e]"><%= event.title %></a>
+                    <span class="rounded-full bg-[#214F82] px-3 py-1 text-xs uppercase tracking-[0.08em] text-[#f1f1f1]"><%= event.status %></span>
+                  </div>
+                  <p class="mt-2 text-sm text-[#9bb7d4]"><%= event.location %> · <%= event.startDatetime.toLocaleDateString() %> <%= event.startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></p>
+                  <p class="mt-3 text-sm leading-6 text-[#cbd5e1]"><%= event.description %></p>
+                </article>
+              <% }) %>
+            <% } %>
+          <% } else if (isUser) { %>
+            <% if (userRsvps.length === 0) { %>
+              <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
+                You don't have any RSVP'd events yet. Browse events and RSVP to the ones you want to attend.
+              </div>
+            <% } else { %>
+              <% userRsvps.forEach((item) => { %>
+                <article class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5">
+                  <div class="flex items-start justify-between gap-3">
+                    <a href="/events/<%= item.event.id %>" class="text-lg font-semibold text-[#f1f1f1] hover:text-[#df3a9e]"><%= item.event.title %></a>
+                    <span class="rounded-full bg-[#214F82] px-3 py-1 text-xs uppercase tracking-[0.08em] text-[#f1f1f1]"><%= item.rsvp.status %></span>
+                  </div>
+                  <p class="mt-2 text-sm text-[#9bb7d4]"><%= item.event.location %> · <%= item.event.startDatetime.toLocaleDateString() %> <%= item.event.startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></p>
+                  <p class="mt-3 text-sm leading-6 text-[#cbd5e1]"><%= item.event.description %></p>
+                </article>
+              <% }) %>
+            <% } %>
+          <% } else { %>
+            <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
+              Your role does not have a dedicated dashboard. Explore events on the right to find something new.
+            </div>
+          <% } %>
         </div>
-      </section>
-    <% } %>
 
-    <section class="rounded-xl border-2 border-[#7ec0ce] bg-[#0d1525] p-5">
-      <h2 class="mb-4 border-2 border-[#7ec0ce] px-4 py-2 text-2xl font-bold text-[#f1f1f1]">
-        All Upcoming Events
-      </h2>
-
-      <div class="rounded-lg bg-[#16213e] p-4">
-        <p class="text-sm text-[#7ec0ce]">
-          Browse all published upcoming events and open event detail pages.
-        </p>
-
-        <div class="mt-4 flex justify-center">
+        <div class="pt-4 border-t border-[#7ec0ce]">
           <a
-            href="/events"
-            class="font-bold text-[#df3a9e] no-underline hover:text-[#f1f1f1]"
+            href="<%= (isAdmin || isStaff) ? '/new' : '/my-rsvps' %>"
+            class="inline-flex items-center justify-center w-full rounded-lg bg-[#df3a9e] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#d12c90]"
           >
-            VIEW ALL EVENTS
+            <%= (isAdmin || isStaff) ? 'Create new event' : 'View all RSVPs' %>
           </a>
         </div>
       </div>
-    </section>
-  </div>
+    </div>
+  </section>
 
-  <div class="mt-8 flex flex-wrap justify-center gap-4">
-    <% if (currentUser && (currentUser.role === "admin" || currentUser.role === "staff")) { %>
-      <a
-        href="/new"
-        class="rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#7ec0ce] px-6 py-2 text-lg font-bold no-underline hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce]"
-      >
-        NEW EVENT
-      </a>
-    <% } %>
+  <section class="space-y-6 h-full">
+    <div class="rounded-3xl border-2 border-[white] bg-[#16213e] p-6 shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_15px_#7ec0ce,0_0_30px_#7ec0ce] h-full flex flex-col">
+      <div class="flex flex-col gap-4 flex-grow">
+        <div>
+          <h2 class="text-xl font-semibold text-[#f1f1f1]">Upcoming events</h2>
+          <p class="mt-2 text-sm text-[#9bb7d4]">Browse the next events that are scheduled to start soon.</p>
+        </div>
 
-    <% if (currentUser && currentUser.role === "admin") { %>
-      <a
-        href="/admin/users"
-        class="rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#7ec0ce] px-6 py-2 text-lg font-bold no-underline hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce]"
-      >
-        MANAGE USERS
-      </a>
-    <% } %>
+        <div class="space-y-3 flex-grow">
+          <% if (upcomingEvents.length === 0) { %>
+            <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
+              No upcoming events are available right now.
+            </div>
+          <% } else { %>
+            <% upcomingEvents.forEach((event) => { %>
+              <article class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5">
+                <a href="/events/<%= event.id %>" class="text-lg font-semibold text-[#f1f1f1] hover:text-[#df3a9e]"><%= event.title %></a>
+                <p class="mt-2 text-sm text-[#9bb7d4]"><%= event.location %> · <%= event.startDatetime.toLocaleDateString() %> <%= event.startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></p>
+                <p class="mt-3 text-sm leading-6 text-[#cbd5e1]"><%= event.description %></p>
+              </article>
+            <% }) %>
+          <% } %>
+        </div>
 
-  </div>
-</section>
+        <div class="pt-4 border-t border-[#7ec0ce]">
+          <a
+            href="/events"
+            class="inline-flex items-center justify-center w-full rounded-lg bg-[#df3a9e] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#d12c90]"
+          >
+            View all events
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

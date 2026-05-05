@@ -23,8 +23,14 @@ export interface IEventController {
     publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
     cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
     showRSVPDashboard(res: Response, session: IAppBrowserSession):  Promise<void>;
+<<<<<<< task/update-home-page
+    showHomePage(res: Response, session: IAppBrowserSession): Promise<void>;
+    searchEvents(req: Request, res: Response): Promise<void>;
+    getFilteredEvents(req: Request, res: Response): Promise<void>;
+=======
     searchEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
     getFilteredEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
+>>>>>>> dev
 }
 
 class EventController implements IEventController {
@@ -398,7 +404,43 @@ class EventController implements IEventController {
         res.redirect(`/events/${eventId}`);
     }
 
+<<<<<<< task/update-home-page
+    async showHomePage(res: Response, session: IAppBrowserSession): Promise<void> {
+        const user = session.authenticatedUser;
+
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        const homeDataResult = await this.eventService.getHomePageData(user.userId, user.role);
+        if (!homeDataResult.ok) {
+            res.status(500).render("partials/error", {
+                message: (homeDataResult.value as EventError).message,
+                layout: false,
+            });
+            return;
+        }
+
+        res.render("home", {
+            session,
+            pageError: null,
+            isAdmin: user.role === "admin",
+            isStaff: user.role === "staff",
+            isUser: user.role === "user",
+            adminEvents: homeDataResult.value.adminEvents,
+            userRsvps: homeDataResult.value.userRsvps,
+            upcomingEvents: homeDataResult.value.upcomingEvents,
+        });
+    }
+
+    async searchEvents(req: Request, res: Response){
+=======
     async searchEvents(req: Request, res: Response, session: IAppBrowserSession){
+>>>>>>> dev
         
         const query = (req.query.query as string ?? "")
 

@@ -250,7 +250,7 @@ class ExpressApp implements IApp {
 
         const browserSession = recordPageView(sessionStore(req));
         this.logger.info(`GET /home for ${browserSession.browserLabel}`);
-        res.render("home", { session: browserSession, pageError: null });
+        this.eventController.showHomePage(res, browserSession);
       }),
     );
 
