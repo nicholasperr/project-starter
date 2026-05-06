@@ -269,12 +269,18 @@ class EventController implements IEventController {
             return;
         }
 
+        const organizerNameResult = await this.eventService.getOrganizerDisplayName(result.value.organizerId);
+        const organizerName = organizerNameResult.ok
+            ? organizerNameResult.value
+            : result.value.organizerId;
+
         res.render("event/edit", {
             pageTitle: "Edit Event",
             event: result.value,
             session: session,
             formValues: {},
             errors: {},
+            organizerName,
         });
     }
 
@@ -374,6 +380,11 @@ class EventController implements IEventController {
                 return;
             }
 
+            const organizerNameResult = await this.eventService.getOrganizerDisplayName(existingResult.value.organizerId);
+            const organizerName = organizerNameResult.ok
+                ? organizerNameResult.value
+                : existingResult.value.organizerId;
+
             res.status(400).render("event/edit", {
                 pageTitle: "Edit Event",
                 event: {
@@ -383,6 +394,7 @@ class EventController implements IEventController {
                 session: (req as any).session,
                 formValues,
                 errors,
+                organizerName,
             });
             return;
         }
