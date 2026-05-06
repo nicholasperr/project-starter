@@ -1,17 +1,17 @@
 <div id="dashboard-content" class="grid gap-6 lg:grid-cols-2">
   <section class="rounded-2xl border-2 border-[#7ec0ce] bg-[#0d1525] p-5">
     <div class="mb-4 flex items-center justify-between gap-3">
-      <h2 class="border-2 border-[#7ec0ce] px-4 py-2 text-2xl font-bold text-[#f1f1f1]">
+      <h2 class="text-2xl font-bold text-[#f1f1f1]">
         My Upcoming RSVPs
       </h2>
 
-      <span class="rounded-full border border-[#7ec0ce] px-3 py-1 text-sm font-bold text-[#7ec0ce]">
+      <span class="rounded-full border-2 border-[#7ec0ce] px-3 py-1 text-sm font-bold text-[#7ec0ce]">
         <%= upcoming.length %>
       </span>
     </div>
 
     <% if (upcoming.length === 0) { %>
-      <div class="rounded-xl border border-[#7ec0ce]/40 bg-[#16213e] p-5">
+      <div class="rounded-xl border-1 border-[#7ec0ce]/40 bg-[#16213e] p-5">
         <p class="text-[#7ec0ce]">No upcoming RSVPs.</p>
         <a href="/events" class="mt-3 inline-flex text-sm font-bold text-[#df3a9e] no-underline hover:text-[#f1f1f1]">
           Find events to RSVP to
@@ -28,11 +28,11 @@
 
   <section class="rounded-2xl border-2 border-[#7ec0ce] bg-[#0d1525] p-5">
     <div class="mb-4 flex items-center justify-between gap-3">
-      <h2 class="border-2 border-[#7ec0ce] px-4 py-2 text-2xl font-bold text-[#f1f1f1]">
+      <h2 class="text-2xl font-bold text-[#f1f1f1]">
         Past & Cancelled RSVPs
       </h2>
 
-      <span class="rounded-full border border-[#7ec0ce] px-3 py-1 text-sm font-bold text-[#7ec0ce]">
+      <span class="rounded-full border-2 border-[#7ec0ce] px-3 py-1 text-sm font-bold text-[#7ec0ce]">
         <%= past.length %>
       </span>
     </div>

@@ -5,7 +5,6 @@ import type { IAppBrowserSession } from "../session/AppSession";
 import { Category } from "../model/event";
 import { EventTimeFrame } from "../service/EventService";
 import { EventError, Unauthorized, InvalidInput } from "../lib/errors";
-import { time } from "node:console";
 
 export interface IEventController {
     createEvent(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
@@ -23,14 +22,10 @@ export interface IEventController {
     publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
     cancelEventFromForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
     showRSVPDashboard(res: Response, session: IAppBrowserSession):  Promise<void>;
-<<<<<<< task/update-home-page
     showHomePage(res: Response, session: IAppBrowserSession): Promise<void>;
-    searchEvents(req: Request, res: Response): Promise<void>;
-    getFilteredEvents(req: Request, res: Response): Promise<void>;
-=======
     searchEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
     getFilteredEvents(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
->>>>>>> dev
+    showMyEvents(res: Response, session: IAppBrowserSession): Promise<void>;
 }
 
 class EventController implements IEventController {
@@ -82,13 +77,19 @@ class EventController implements IEventController {
                 ? rsvpsResult.value.find((rsvp) => rsvp.userId === user.userId) ?? null
                 : null;
 
+        const organizerNameResult = await this.eventService.getOrganizerDisplayName(result.value.organizerId);
+        const organizerName = organizerNameResult.ok
+            ? organizerNameResult.value
+            : result.value.organizerId;
+            
         res.render("event/show", {
             session,
             pageError: null,
             event: result.value,
             currentRsvp,
             errorMessage: null,
-        });
+            organizerName,
+        });    
     }
 
     async publishEventFromForm(req: Request, res: Response, session: IAppBrowserSession) {
@@ -170,6 +171,7 @@ class EventController implements IEventController {
             startDatetime,
             endDatetime,
             organizerId,
+            returnTo,
         } = req.body;
 
         const formValues = {
@@ -182,6 +184,7 @@ class EventController implements IEventController {
             startDatetime,
             endDatetime,
             organizerId,
+            returnTo,
         };
 
         const errors = this.validateEventForm(formValues);
@@ -219,16 +222,21 @@ class EventController implements IEventController {
             return;
         }
 
-        res.redirect("/events");
+        const safeReturnTo =
+            returnTo === "/my-events" || returnTo === "/events"
+                ? returnTo
+                : "/events";
+
+        res.redirect(safeReturnTo);
     }
 
     async showEventCreateForm(res: Response, session: IAppBrowserSession, pageError?: string, formData?: any) {
         res.render("event/create", {
             pageTitle: "Create Event",
             session: session,
-            formValues: {},
+            formValues: formData ?? {},
             errors: {},
-            pageError: null,
+            pageError: pageError ?? null,
         });
     }
 
@@ -404,7 +412,6 @@ class EventController implements IEventController {
         res.redirect(`/events/${eventId}`);
     }
 
-<<<<<<< task/update-home-page
     async showHomePage(res: Response, session: IAppBrowserSession): Promise<void> {
         const user = session.authenticatedUser;
 
@@ -437,10 +444,46 @@ class EventController implements IEventController {
         });
     }
 
-    async searchEvents(req: Request, res: Response){
-=======
+
+    async showMyEvents(res: Response, session: IAppBrowserSession): Promise<void> {
+        const user = session.authenticatedUser;
+
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        if (user.role !== "admin" && user.role !== "staff") {
+            res.status(403).render("partials/error", {
+                message: "Only admins and staff can view My Events.",
+                layout: false,
+            });
+            return;
+        }
+
+        const result = await this.eventService.getMyEvents(user.userId, user.role);
+
+        if (!result.ok) {
+            const error = result.value as EventError;
+
+            res.status(400).render("partials/error", {
+                message: error.message,
+                layout: false,
+            });
+            return;
+        }
+
+        res.render("events/my-events", {
+            session,
+            pageError: null,
+            events: result.value,
+        });
+    }
+
     async searchEvents(req: Request, res: Response, session: IAppBrowserSession){
->>>>>>> dev
         
         const query = (req.query.query as string ?? "")
 

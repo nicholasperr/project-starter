@@ -262,7 +262,9 @@ class ExpressApp implements IApp {
         }
         this.logger.info(`GET /new`);
         const browserSession = recordPageView(sessionStore(req));
-        this.eventController.showEventCreateForm(res, browserSession);
+        this.eventController.showEventCreateForm(res, browserSession, undefined, {
+            returnTo: typeof req.query.returnTo === "string" ? req.query.returnTo : "/events",
+            });
       }),
     );
 
@@ -291,6 +293,20 @@ class ExpressApp implements IApp {
             this.eventController.getFilteredEvents(req, res, browserSession);
         })
         );
+
+    this.app.get(
+        "/my-events",
+        asyncHandler(async (req, res) => {
+            if (!this.requireRole(req, res, ["admin", "staff"], "Only admins and staff can view My Events.")) {
+            return;
+            }
+    
+            this.logger.info("GET /my-events");
+
+            const browserSession = recordPageView(sessionStore(req));
+            this.eventController.showMyEvents(res, browserSession);
+        }),
+    );
 
     this.app.get(
       "/events/:id",

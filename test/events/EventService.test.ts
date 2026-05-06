@@ -2,6 +2,7 @@ import prisma from "../../src/prisma";
 import { CreateEventService } from "../../src/service/EventService";
 import { CreateEventRepository } from "../../src/repository/EventRepository";
 import { CreateRSVPRepository } from "../../src/repository/RSVPRepository";
+import { CreateInMemoryUserRepository } from "../../src/auth/InMemoryUserRepository";
 import "dotenv/config";
 
 
@@ -44,7 +45,7 @@ describe("EventService", () => {
             endDatetime: new Date("2100-01-02T14:00:00"),
         });
 
-        eventService = CreateEventService(CreateEventRepository(), CreateRSVPRepository());
+        eventService = CreateEventService(CreateEventRepository(), CreateRSVPRepository(), CreateInMemoryUserRepository());
     });
 
     it("Passes a valid query string that matches an event and returns the results.", async () => {
