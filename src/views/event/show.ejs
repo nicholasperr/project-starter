@@ -12,7 +12,31 @@
           : "border-[#7ec0ce] text-[#7ec0ce]";
 %>
 
-<div x-data="{ isEditing: false }">
+<div x-data="{
+  isEditing: false,
+  hasUnsavedChanges: false,
+  init() {
+    window.addEventListener('beforeunload', (e) => {
+      if (this.hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    });
+  },
+  markAsChanged() {
+    this.hasUnsavedChanges = true;
+  },
+  resetChanges() {
+    this.hasUnsavedChanges = false;
+  },
+  toggleEdit() {
+    this.isEditing = !this.isEditing;
+    if (!this.isEditing) {
+      this.resetChanges();
+    }
+  }
+}">
   <!-- Show Mode -->
   <div x-show="!isEditing">
     <section class="mb-5 p-6 border-2 border-[white] rounded-2xl bg-[#16213e] shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce]">
@@ -110,7 +134,7 @@
 
           <% if (canManage) { %>
             <button
-              @click="isEditing = true"
+              @click="toggleEdit()"
               class="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#e6faff] px-4 py-2 font-bold hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce] cursor-pointer"
             >
               Edit Event
@@ -129,7 +153,7 @@
 
   <!-- Edit Mode -->
   <div x-show="isEditing" x-transition>
-    <form action="/events/<%= event.id %>" method="post" class="space-y-6">
+    <form action="/events/<%= event.id %>" method="post" @submit="resetChanges()" class="space-y-6">
       <section class="mb-5 p-6 border-2 border-[white] rounded-2xl bg-[#16213e] shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce]">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div class="flex-1">
@@ -143,6 +167,7 @@
                 type="text"
                 name="title"
                 value="<%= event.title %>"
+                @input="markAsChanged()"
                 class="w-full rounded-lg bg-[#0c1a35] border border-[#33527c] text-[#f1f1f1] px-4 py-2 text-4xl font-bold focus:border-[#7ec0ce] focus:outline-none"
                 required
               />
@@ -153,6 +178,7 @@
               <textarea
                 name="description"
                 rows="4"
+                @input="markAsChanged()"
                 class="w-full rounded-lg bg-[#0c1a35] border border-[#33527c] text-[#9bb7d4] px-4 py-2 focus:border-[#7ec0ce] focus:outline-none"
                 required
               ><%= event.description %></textarea>
@@ -163,6 +189,7 @@
             <span class="text-sm font-bold text-[#7ec0ce]">Status</span>
             <select
               name="status"
+              @change="markAsChanged()"
               class="rounded-full border px-4 py-1 text-sm font-bold capitalize <%= statusClass %> bg-[#16213e] focus:outline-none"
             >
               <option value="draft" <%= event.status === 'draft' ? 'selected' : '' %>>draft</option>
@@ -187,6 +214,7 @@
                 type="text"
                 name="location"
                 value="<%= event.location %>"
+                @input="markAsChanged()"
                 class="mt-1 w-full bg-transparent text-[#f1f1f1] border-none focus:outline-none"
                 required
               />
@@ -196,6 +224,7 @@
               <span class="font-bold text-[#7ec0ce]">Category</span>
               <select
                 name="category"
+                @change="markAsChanged()"
                 class="mt-1 w-full bg-transparent text-[#f1f1f1] border-none focus:outline-none capitalize"
                 required
               >
@@ -225,6 +254,7 @@
                   const minutes = String(d.getMinutes()).padStart(2, '0');
                   return `${year}-${month}-${day}T${hours}:${minutes}`;
                 })() %>"
+                @change="markAsChanged()"
                 class="mt-1 w-full bg-transparent text-[#f1f1f1] border-none focus:outline-none"
                 required
               />
@@ -244,6 +274,7 @@
                   const minutes = String(d.getMinutes()).padStart(2, '0');
                   return `${year}-${month}-${day}T${hours}:${minutes}`;
                 })() %>"
+                @change="markAsChanged()"
                 class="mt-1 w-full bg-transparent text-[#f1f1f1] border-none focus:outline-none"
                 required
               />
@@ -255,6 +286,7 @@
                 type="number"
                 name="capacity"
                 value="<%= event.capacity ?? '' %>"
+                @input="markAsChanged()"
                 class="mt-1 w-full bg-transparent text-[#f1f1f1] border-none focus:outline-none"
                 placeholder="No limit"
               />
@@ -282,7 +314,7 @@
 
             <button
               type="button"
-              @click="isEditing = false"
+              @click="toggleEdit()"
               class="w-full rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#e6faff] px-4 py-2 font-bold hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce] cursor-pointer"
             >
               Cancel Edit
