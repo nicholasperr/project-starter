@@ -250,47 +250,65 @@ class ExpressApp implements IApp {
 
         const browserSession = recordPageView(sessionStore(req));
         this.logger.info(`GET /home for ${browserSession.browserLabel}`);
-        res.render("home", { session: browserSession, pageError: null });
+        this.eventController.showHomePage(res, browserSession);
       }),
     );
 
     this.app.get(
       "/new",
       asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
+        if (!this.requireRole(req, res, ["admin", "staff"], "Only admins and staff can create events.")) {
           return;
         }
         this.logger.info(`GET /new`);
         const browserSession = recordPageView(sessionStore(req));
-        this.eventController.showEventCreateForm(res, browserSession);
+        this.eventController.showEventCreateForm(res, browserSession, undefined, {
+            returnTo: typeof req.query.returnTo === "string" ? req.query.returnTo : "/events",
+            });
       }),
     );
-        this.app.get(
-      "/events/search",
 
-      asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
-          return;
-        }
+    this.app.get(
+        "/events/search",
+        
+        asyncHandler(async (req, res) => {
+            if (!this.requireAuthenticated(req, res)) {
+            return;
+            }
 
-        const browserSession = recordPageView(sessionStore(req));
-        this.eventController.searchEvents(req, res, browserSession);
-      })
+            const browserSession = recordPageView(sessionStore(req));
+            this.eventController.searchEvents(req, res, browserSession);
+        })
     );
 
-        this.app.get(
-      "/events",
-      asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
-          return;
-        }
-        this.logger.info(`GET /events`);
+    this.app.get(
+        "/events",
+        asyncHandler(async (req, res) => {
+            if (!this.requireAuthenticated(req, res)) {
+            return;
+            }
+            this.logger.info(`GET /events`);
 
-        const browserSession = recordPageView(sessionStore(req));
-        this.eventController.getFilteredEvents(req, res, browserSession);
-      })
+            const browserSession = recordPageView(sessionStore(req));
+            this.eventController.getFilteredEvents(req, res, browserSession);
+        })
+        );
+
+    this.app.get(
+        "/my-events",
+        asyncHandler(async (req, res) => {
+            if (!this.requireRole(req, res, ["admin", "staff"], "Only admins and staff can view My Events.")) {
+            return;
+            }
+    
+            this.logger.info("GET /my-events");
+
+            const browserSession = recordPageView(sessionStore(req));
+            this.eventController.showMyEvents(res, browserSession);
+        }),
     );
-      this.app.get(
+
+    this.app.get(
       "/events/:id",
       asyncHandler(async (req, res) => {
         if (!this.requireAuthenticated(req, res)) {
@@ -373,24 +391,12 @@ class ExpressApp implements IApp {
     this.app.post(
       "/events",
       asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
+        if (!this.requireRole(req, res, ["admin", "staff"], "Only admins and staff can create events.")) {
           return;
         }
         this.logger.info(`POST /events`);
         const browserSession = recordPageView(sessionStore(req));
         this.eventController.createEvent(req, res, browserSession);
-      }),
-    );
-
-    this.app.get(
-      "/events/:id/edit",
-      asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
-          return;
-        }
-        this.logger.info(`GET /events/${req.params.id}/edit`);
-        const browserSession = recordPageView(sessionStore(req));
-        this.eventController.showEventEditForm(req, res, browserSession);
       }),
     );
 

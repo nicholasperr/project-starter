@@ -30,12 +30,8 @@ export function createComposedApp(logger?: ILoggingService, eventRepository?: IE
   const eventRepo = eventRepository ?? CreateEventRepository();
   const rsvpRepo = rsvpRepository ?? CreateRSVPRepository();
 
-  const eventService = CreateEventService(eventRepo, rsvpRepo);
-  const eventController = CreateEventController(
-    eventService,
-    resolvedLogger,
-  );
-
+  const eventService = CreateEventService(eventRepo, rsvpRepo, authUsers);
+  const eventController = CreateEventController(eventService, resolvedLogger);
 
   return CreateApp(authController, eventController, resolvedLogger);
 }

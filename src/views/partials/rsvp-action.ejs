@@ -24,7 +24,7 @@
       >
         <button
           type="submit"
-          class="evently-hand evently-button-glow w-full rounded-lg border border-cyan-300 bg-slate-900 px-4 py-2 text-xl font-bold text-cyan-100 hover:bg-cyan-950"
+          class="rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#e6faff] px-5 py-2.5 font-bold hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce]"
         >
           <% if (status === "going") { %>
             Cancel RSVP
@@ -46,6 +46,6 @@
       <% } %>
     <% } %>
   <% } else { %>
-    <p class="text-sm text-cyan-100/60">No RSVP actions available for your role.</p>
+    <% /* Staff/admin do not need RSVP actions displayed. */ %>
   <% } %>
 </div>

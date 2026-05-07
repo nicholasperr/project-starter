@@ -4,6 +4,7 @@ import { CreateEventRepository } from "../../src/repository/EventRepository";
 import { CreateRSVPRepository } from "../../src/repository/RSVPRepository";
 import { Err } from "../../src/lib/result";
 import { EventNotFound } from "../../src/lib/errors";
+import { CreateInMemoryUserRepository } from "../../src/auth/InMemoryUserRepository";
 
 async function resetDatabase() {
   await prisma.rSVP.deleteMany();
@@ -32,7 +33,7 @@ describe("EventService RSVP Toggle", () => {
 
   beforeEach(async () => {
     await resetDatabase();
-    service = CreateEventService(CreateEventRepository(), CreateRSVPRepository());
+    service = CreateEventService(CreateEventRepository(), CreateRSVPRepository(), CreateInMemoryUserRepository());
   });
 
   it("creates a new RSVP as going when capacity allows", async () => {

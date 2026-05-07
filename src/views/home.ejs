@@ -1,90 +1,128 @@
-<section class="mb-6 text-center">
-  <h1 class="evently-logo text-6xl text-white">EVENTLY</h1>
-</section>
-
 <% if (pageError) { %>
-  <%- include("partials/error", { message: pageError }) %>
+  <div class="mb-6 rounded-3xl border border-[#B91717] bg-[#521212] p-5 text-[#f1f1f1] shadow-sm">
+    <p><%= pageError %></p>
+  </div>
 <% } %>
 
-<% const currentUser = session.authenticatedUser; %>
+<div class="grid gap-6 xl:grid-cols-2 xl:items-stretch">
+  <section class="space-y-6 h-full">
+    <div class="rounded-3xl border-2 border-[white] bg-[#16213e] p-6 shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce] h-full flex flex-col">
+      <div class="flex flex-col gap-4 flex-grow">
+        <div>
+          <h2 class="text-xl font-semibold text-[#f1f1f1]"><%= (isAdmin || isStaff) ? "Your events" : "Your RSVPs" %></h2>
+          <p class="mt-2 text-sm text-[#9bb7d4]">
+            <%= (isAdmin || isStaff) ? "Events you created most recently." : "Upcoming RSVP'd events." %>
+          </p>
+        </div>
 
-<section class="grid gap-8 md:grid-cols-2">
-  <% if (currentUser && currentUser.role === "user") { %>
-    <div class="evently-card rounded-2xl p-5">
-      <h2 class="mb-4 border-2 border-[#7ec0ce] px-4 py-2 text-2xl text-[#f1f1f1]">
-        My Upcoming RSVPs
-      </h2>
+        <div class="space-y-3 flex-grow">
+          <% if (isAdmin || isStaff) { %>
+            <% if (adminEvents.length === 0) { %>
+              <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
+                You haven't created any events yet. Create one to get started.
+              </div>
+            <% } else { %>
+              <% adminEvents.forEach((event) => { %>
+                <article class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5">
+                  <div class="flex items-start justify-between gap-3">
+                    <a href="/events/<%= event.id %>" class="text-lg font-semibold text-[#f1f1f1] hover:text-[#df3a9e]"><%= event.title %></a>
+                    <span class="rounded-full bg-[#214F82] px-3 py-1 text-xs uppercase tracking-[0.08em] text-[#f1f1f1]"><%= event.status %></span>
+                  </div>
+                  <p class="mt-2 text-sm text-[#9bb7d4]"><%= event.location %> · <%= event.startDatetime.toLocaleDateString() %> <%= event.startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></p>
+                  <p class="mt-3 text-sm leading-6 text-[#cbd5e1]"><%= event.description %></p>
+                </article>
+              <% }) %>
+            <% } %>
+          <% } else if (isUser) { %>
+            <% if (userRsvps.length === 0) { %>
+              <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
+                You don't have any RSVP'd events yet. Browse events and RSVP to the ones you want to attend.
+              </div>
+            <% } else { %>
+              <% userRsvps.forEach((item) => { %>
+                <article class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5">
+                  <div class="flex items-start justify-between gap-3">
+                    <a href="/events/<%= item.event.id %>" class="text-lg font-semibold text-[#f1f1f1] hover:text-[#df3a9e]"><%= item.event.title %></a>
+                    <span class="rounded-full bg-[#214F82] px-3 py-1 text-xs uppercase tracking-[0.08em] text-[#f1f1f1]"><%= item.rsvp.status %></span>
+                  </div>
+                  <p class="mt-2 text-sm text-[#9bb7d4]"><%= item.event.location %> · <%= item.event.startDatetime.toLocaleDateString() %> <%= item.event.startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></p>
+                  <p class="mt-3 text-sm leading-6 text-[#cbd5e1]"><%= item.event.description %></p>
+                </article>
+              <% }) %>
+            <% } %>
+          <% } else { %>
+            <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
+              Your role does not have a dedicated dashboard. Explore events on the right to find something new.
+            </div>
+          <% } %>
+        </div>
 
-      <div class="rounded-lg bg-[#0d1525] p-4 text-[#7ec0ce]">
-        <p class="mb-3 text-sm">
-          See the events you RSVP’d to, cancel RSVPs, and review your upcoming plans.
-        </p>
-
-        <a
-          href="/my-rsvps"
-          class="text-[#df3a9e] font-bold no-underline hover:text-[#f1f1f1]"
-        >
-          VIEW ALL RSVPS
-        </a>
+        <div class="pt-4 border-t border-[#7ec0ce]">
+          <a
+            href="<%= (isAdmin || isStaff) ? '/my-events' : '/my-rsvps' %>"
+            class="inline-flex items-center justify-center w-full rounded-lg bg-[#df3a9e] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#d12c90]"
+          >
+            <%= (isAdmin || isStaff) ? 'View my events' : 'View all RSVPs' %>
+          </a>
+        </div>
       </div>
     </div>
-  <% } else { %>
-    <div class="evently-card rounded-2xl p-5">
-      <h2 class="mb-4 border-2 border-[#7ec0ce] px-4 py-2 text-2xl text-[#f1f1f1]">
-        My Upcoming Events
-      </h2>
+  </section>
 
-      <div class="rounded-lg bg-[#0d1525] p-4 text-[#7ec0ce]">
-        <p class="mb-3 text-sm">
-          View the events you manage, including drafts that are not visible to members yet.
-        </p>
+  <section class="space-y-6 h-full">
+    <div class="rounded-3xl border-2 border-[white] bg-[#16213e] p-6 shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce] h-full flex flex-col">
+      <div class="flex flex-col gap-4 flex-grow">
+        <div>
+          <h2 class="text-xl font-semibold text-[#f1f1f1]">Upcoming events</h2>
+          <p class="mt-2 text-sm text-[#9bb7d4]">Browse the next events that are scheduled to start soon.</p>
+        </div>
 
-        <a
-          href="/events"
-          class="text-[#df3a9e] font-bold no-underline hover:text-[#f1f1f1]"
-        >
-          VIEW ALL MY EVENTS
-        </a>
+        <div class="space-y-3 flex-grow">
+          <% if (upcomingEvents.length === 0) { %>
+            <div class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5 text-[#cbd5e1]">
+              No upcoming events are available right now.
+            </div>
+          <% } else { %>
+            <% upcomingEvents.forEach((event) => { %>
+              <article class="rounded-3xl border border-[#21325c] bg-[#0c1a35] p-5">
+                <a href="/events/<%= event.id %>" class="text-lg font-semibold text-[#f1f1f1] hover:text-[#df3a9e]"><%= event.title %></a>
+                <p class="mt-2 text-sm text-[#9bb7d4]"><%= event.location %> · <%= event.startDatetime.toLocaleDateString() %> <%= event.startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></p>
+                <p class="mt-3 text-sm leading-6 text-[#cbd5e1]"><%= event.description %></p>
+              </article>
+            <% }) %>
+          <% } %>
+        </div>
+
+        <div class="pt-4 border-t border-[#7ec0ce]">
+          <a
+            href="/events"
+            class="inline-flex items-center justify-center w-full rounded-lg bg-[#df3a9e] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#d12c90]"
+          >
+            View all published events
+          </a>
+        </div>
       </div>
     </div>
-  <% } %>
+  </section>
+</div>
 
-  <div class="evently-card rounded-2xl p-5">
-    <h2 class="mb-4 border-2 border-[#7ec0ce] px-4 py-2 text-2xl text-[#f1f1f1]">
-      All Upcoming Events
-    </h2>
-
-    <div class="rounded-lg bg-[#0d1525] p-4 text-[#7ec0ce]">
-      <p class="mb-3 text-sm">
-        Browse all published upcoming events and open event detail pages.
-      </p>
-
-      <a
-        href="/events"
-        class="text-[#df3a9e] font-bold no-underline hover:text-[#f1f1f1]"
-      >
-        VIEW ALL EVENTS
-      </a>
-    </div>
-  </div>
-</section>
-
-<section class="mt-8 flex flex-wrap justify-center gap-6">
-  <% if (currentUser && (currentUser.role === "admin" || currentUser.role === "staff")) { %>
+<% if (isAdmin || isStaff) { %>
+  <section class="mt-8 flex flex-wrap justify-center gap-4">
     <a
       href="/new"
-      class="evently-outline rounded-lg px-6 py-2 text-xl font-bold no-underline"
+      class="inline-flex items-center justify-center rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#95CFDB] px-8 py-3 text-lg font-bold no-underline hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce]"
     >
       NEW EVENT
     </a>
   <% } %>
 
-  <% if (currentUser && currentUser.role === "admin") { %>
-    <a
-      href="/admin/users"
-      class="evently-outline rounded-lg px-6 py-2 text-xl font-bold no-underline"
-    >
-      MANAGE USERS
-    </a>
-  <% } %>
-</section>
+    <% if (isAdmin) { %>
+      <a
+        href="/admin/users"
+        class="inline-flex items-center justify-center rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#95CFDB] px-8 py-3 text-lg font-bold no-underline hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce]"
+      >
+        MANAGE USERS
+      </a>
+    <% } %>
+  </section>
+<% } %>

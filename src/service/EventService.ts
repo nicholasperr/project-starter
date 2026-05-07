@@ -4,6 +4,7 @@ import { IEventRepository } from "../repository/EventRepository";
 import { IRSVPRepository } from "../repository/RSVPRepository";
 import { Ok, Err, type Result } from "../lib/result";
 import { EventError, EventNotFound, Unauthorized, InvalidInput, InvalidState, DashboardAccessError, DashboardDataError, EventClosedError } from "../lib/errors";
+import type { IUserRepository } from "../auth/UserRepository";
 
 export type EventTimeFrame = "all_upcoming" | "this_week" | "this_weekend";
 
@@ -20,15 +21,25 @@ export interface IEventService {
     deleteRSVP(eventId: number, userId: string): Promise<Result<undefined,EventError>>;
     getUserDashboard(userId: string, role: string,): Promise<Result<{ upcoming: {rsvp: IRSVP, event: IEvent}[]; past: {rsvp: IRSVP, event: IEvent}[] }, EventError>>;
     getVisibleEventById(eventId: number, userId: string, role: string): Promise<Result<IEvent, EventError>>;
+    getOrganizerDisplayName(organizerId: string): Promise<Result<string, EventError>>;
     publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>>;
     cancelEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>>;
+    getHomePageData(userId: string, role: string): Promise<Result<{
+        upcomingEvents: IEvent[];
+        adminEvents: IEvent[];
+        userRsvps: { rsvp: IRSVP; event: IEvent }[];
+    }, EventError>>;
     searchEvents(query: string): Promise<Result<IEvent[], EventError>>;
     getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): Promise<Result<IEvent[], EventError>>;
-    getVisibleEventLists(category: Category | undefined, timeframe: EventTimeFrame | undefined, userId: string, role: string): Promise<Result<{ publishedEvents: IEvent[]; draftEvents: IEvent[] }, EventError>>;
+    getMyEvents(userId: string, role: string): Promise<Result<IEvent[], EventError>>;
 }
 
 class EventService implements IEventService {
-    constructor(private readonly eventRepository: IEventRepository, private readonly rsvpRepository: IRSVPRepository) {}
+    constructor(
+        private readonly eventRepository: IEventRepository,
+        private readonly rsvpRepository: IRSVPRepository,
+        private readonly userRepository: IUserRepository,
+    ) {}
 
     async createEvent(title: string, description: string, location: string, category: Category, status = 'draft' as EventStatus, capacity: number | null, startDatetime: Date, endDatetime: Date, organizerId: string) {
         return await this.eventRepository.create(title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId);
@@ -40,6 +51,24 @@ class EventService implements IEventService {
 
     async getAllEvents() {
        return await this.eventRepository.findAll();
+    }
+
+    async getMyEvents(userId: string, role: string): Promise<Result<IEvent[], EventError>> {
+        if (role !== "admin" && role !== "staff") {
+            return Err(Unauthorized("Only admins and staff can view My Events"));
+        }
+
+        const result = await this.eventRepository.findAll();
+
+        if (!result.ok) {
+            return result;
+        }
+
+        const events = result.value
+            .filter((event) => event.organizerId === userId)
+            .sort((a, b) => a.startDatetime.getTime() - b.startDatetime.getTime());
+
+        return Ok(events);
     }
 
     async updateEvent(eventId: number, title?: string, description?: string, location?: string, category?: Category, status?: EventStatus, capacity?: number | null, startDatetime?: Date, endDatetime?: Date) {
@@ -81,6 +110,16 @@ class EventService implements IEventService {
         }
 
         return event;
+    }
+
+    async getOrganizerDisplayName(organizerId: string): Promise<Result<string, EventError>> {
+        const organizerResult = await this.userRepository.findById(organizerId);
+
+        if (!organizerResult.ok) {
+            return Ok(organizerId);
+        }
+
+        return Ok(organizerResult.value?.displayName ?? organizerId);
     }
 
     async publishEvent(eventId: number, userId: string, role: string): Promise<Result<undefined, EventError>> {
@@ -334,11 +373,52 @@ class EventService implements IEventService {
 
         return Ok({ upcoming, past });
     }
+
+    async getHomePageData(userId: string, role: string): Promise<Result<{
+        upcomingEvents: IEvent[];
+        adminEvents: IEvent[];
+        userRsvps: { rsvp: IRSVP; event: IEvent }[];
+    }, EventError>> {
+        const upcomingResult = await this.eventRepository.findFiltered("", undefined, "all_upcoming");
+        if (!upcomingResult.ok) {
+            return Err(upcomingResult.value as EventError);
+        }
+
+        const upcomingEvents = upcomingResult.value.slice(0, 4);
+        const adminEvents: IEvent[] = [];
+        const userRsvps: { rsvp: IRSVP; event: IEvent }[] = [];
+
+        if (role === "admin" || role === "staff") {
+            const allEventsResult = await this.eventRepository.findAll();
+            if (!allEventsResult.ok) {
+                return Err(allEventsResult.value as EventError);
+            }
+
+            const myEvents = allEventsResult.value
+                .filter((event) => event.organizerId === userId)
+                .sort((a, b) => a.startDatetime.getTime() - b.startDatetime.getTime())
+                .slice(0, 4);
+
+            return Ok({ upcomingEvents, adminEvents: myEvents, userRsvps });
+        }
+
+        if (role === "user") {
+            const dashboardResult = await this.getUserDashboard(userId, role);
+            if (!dashboardResult.ok) {
+                return Err(dashboardResult.value as EventError);
+            }
+
+            const rsvps = [...dashboardResult.value.upcoming].slice(0, 4);
+            return Ok({ upcomingEvents, adminEvents, userRsvps: rsvps });
+        }
+
+        return Ok({ upcomingEvents, adminEvents, userRsvps });
+    }
 }
 
 export const CreateEventService = (
    eventRepository: IEventRepository,
-   rsvpRepository: IRSVPRepository
+   rsvpRepository: IRSVPRepository,
+   userRepository: IUserRepository,
 ): IEventService => {
-   return new EventService(eventRepository, rsvpRepository);
-};
+   return new EventService(eventRepository, rsvpRepository, userRepository);}

@@ -2,6 +2,7 @@ import prisma from "../../src/prisma";
 import { CreateEventService } from "../../src/service/EventService";
 import { CreateEventRepository } from "../../src/repository/EventRepository";
 import { CreateRSVPRepository } from "../../src/repository/RSVPRepository";
+import { CreateInMemoryUserRepository } from "../../src/auth/InMemoryUserRepository";
 
 async function resetDatabase() {
   await prisma.rSVP.deleteMany();
@@ -35,7 +36,7 @@ describe("EventService My RSVPs Dashboard", () => {
 
     eventRepo = CreateEventRepository();
     rsvpRepo = CreateRSVPRepository();
-    service = CreateEventService(eventRepo, rsvpRepo);
+    service = CreateEventService(eventRepo, rsvpRepo, CreateInMemoryUserRepository());
   });
 
   it("groups RSVP items into upcoming vs past/cancelled and sorts each section correctly", async () => {
