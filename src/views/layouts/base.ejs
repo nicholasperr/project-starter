@@ -10,6 +10,64 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+
+    <style>
+      .evently-logo {
+        font-family: "Megrim", cursive;
+        text-shadow: 0 0 24px #df3a9e, 0 0 24px #df3a9e, 0 0 24px #df3a9e, 0 0 24px #df3a9e;
+      }
+
+      .evently-card {
+        border: 2px solid #7ec0ce;
+        background: #16213e;
+        box-shadow:
+          0 0 2px #7ec0ce,
+          inset 0 0 2px #7ec0ce,
+          0 0 5px #7ec0ce,
+          0 0 15px #7ec0ce,
+          0 0 30px #7ec0ce;
+      }
+
+      .evently-input {
+        border: 2px solid #7ec0ce;
+        background: #16213e;
+        color: #f1f1f1;
+      }
+
+      .evently-input:focus {
+        outline: 2px solid rgba(126, 192, 206, 0.2);
+        border-color: #7ec0ce;
+      }
+
+      .evently-primary {
+        background: #df3a9e;
+        color: #f1f1f1;
+      }
+
+      .evently-primary:hover {
+        background: #d12c90;
+      }
+
+      .evently-outline {
+        border: 2px solid #7ec0ce;
+        background: #16213e;
+        color: #7ec0ce;
+        box-shadow:
+          0 0 2px #7ec0ce,
+          inset 0 0 2px #7ec0ce,
+          0 0 5px #7ec0ce,
+          0 0 15px #7ec0ce,
+          0 0 30px #7ec0ce;
+      }
+
+      .evently-outline:hover {
+        background: #214F82;
+      }
+
+      .text {
+        color: #7ec0ce;
+      }
+    </style>
   </head>
   <body class="min-h-screen bg-[#0d1525] text-[#f1f1f1] p-6">
     <div class="max-w-5xl mx-auto">
@@ -20,12 +78,14 @@
         >
           <span class="text-white text-5xl" style="font-family: 'Megrim', cursive; text-shadow: 0 0 24px #df3a9e, 0 0 24px #df3a9e, 0 0 24px #df3a9e, 0 0 24px #df3a9e;">Evently</span>
         </a>
+
         <div class="flex items-center gap-3 flex-wrap">
           <% if (session?.authenticatedUser) { %>
             <span class="text-[#7ec0ce]">
               Signed in as <strong class="text-[#f1f1f1]"><%= session.authenticatedUser.displayName %></strong>
               (<%= session.authenticatedUser.role %>)
             </span>
+
             <form method="post" action="/logout" class="m-0">
               <button
                 type="submit"
@@ -39,6 +99,7 @@
           <% } %>
         </div>
       </nav>
+
       <main class="max-w-5xl mx-auto"><%- body %></main>
     </div>
   </body>

@@ -33,6 +33,39 @@ class EventController implements IEventController {
         private readonly logger: ILoggingService,
     ) {}
 
+    private isHtmxRequest(req: Request): boolean {
+        return req.get("HX-Request") === "true";
+    }
+
+    private countGoingRsvps(rsvps: IRSVP[]): number {
+        return rsvps.filter((rsvp) => rsvp.status === "going").length;
+    }
+
+    private async renderLifecyclePanel(
+        req: Request,
+        res: Response,
+        eventId: number,
+        session: IAppBrowserSession,
+        errorMessage: string | null = null,
+    ): Promise<void> {
+        const eventResult = await this.eventService.getEventById(eventId);
+
+        if (eventResult.ok === false) {
+            res.status(404).render("partials/error", {
+                message: eventResult.value.message,
+                layout: false,
+            });
+            return;
+        }
+
+        res.status(200).render("partials/event-lifecycle-panel", {
+            layout: false,
+            event: eventResult.value,
+            session,
+            errorMessage,
+        });
+    }
+
     async showEventDetail(req: Request, res: Response, session: IAppBrowserSession){
         this.logger.info(`Showing event detail for event ID: ${req.params.id}`);
         const eventId = Number(req.params.id);
@@ -69,10 +102,9 @@ class EventController implements IEventController {
         }
 
         const rsvpsResult = await this.eventService.getRSVPsForEvent(eventId);
-        const currentRsvp =
-            rsvpsResult.ok
-                ? rsvpsResult.value.find((rsvp) => rsvp.userId === user.userId) ?? null
-                : null;
+        const rsvps = rsvpsResult.ok ? rsvpsResult.value : [];
+        const currentRsvp = rsvps.find((rsvp) => rsvp.userId === user.userId) ?? null;
+        const goingCount = this.countGoingRsvps(rsvps);
 
         const organizerNameResult = await this.eventService.getOrganizerDisplayName(result.value.organizerId);
         const organizerName = organizerNameResult.ok
@@ -84,6 +116,7 @@ class EventController implements IEventController {
             pageError: null,
             event: result.value,
             currentRsvp,
+            goingCount,
             errorMessage: null,
             organizerName,
             editMode: req.query.edit === "true",
@@ -114,10 +147,20 @@ class EventController implements IEventController {
         const result = await this.eventService.publishEvent(eventId, user.userId, user.role);
 
         if (!result.ok) {
+            if (this.isHtmxRequest(req)) {
+                await this.renderLifecyclePanel(req, res, eventId, session, result.value.message);
+                return;
+            }
+
             res.status(400).render("partials/error", {
                 message: result.value.message,
                 layout: false,
             });
+            return;
+        }
+
+        if (this.isHtmxRequest(req)) {
+            await this.renderLifecyclePanel(req, res, eventId, session);
             return;
         }
 
@@ -148,6 +191,11 @@ class EventController implements IEventController {
         const result = await this.eventService.cancelEvent(eventId, user.userId, user.role);
 
         if (!result.ok) {
+            if (this.isHtmxRequest(req)) {
+                await this.renderLifecyclePanel(req, res, eventId, session, result.value.message);
+                return;
+            }
+
             res.status(400).render("partials/error", {
                 message: result.value.message,
                 layout: false,
@@ -155,9 +203,14 @@ class EventController implements IEventController {
             return;
         }
 
+        if (this.isHtmxRequest(req)) {
+            await this.renderLifecyclePanel(req, res, eventId, session);
+            return;
+        }
+
         res.redirect(`/events/${eventId}`);
     }
-    
+
     async createEvent(req: Request, res: Response, session: IAppBrowserSession) {
         const {
             title,
@@ -455,7 +508,7 @@ class EventController implements IEventController {
 
         const result = await this.eventService.searchEvents(query);
         if (result.ok === false) {
-            res.status(400).json({ error: result.value});
+            res.status(400).json({ error: result.value });
             return;
         }
 
@@ -477,8 +530,23 @@ class EventController implements IEventController {
 
         const category = req.query.category as Category | undefined;
         const timeframe = req.query.timeframe as EventTimeFrame | undefined;
+        const user = session.authenticatedUser;
 
-        const result = await this.eventService.getFilteredEvents(category, timeframe)
+        if (!user) {
+            res.status(401).render("partials/error", {
+                message: "Please log in to continue.",
+                layout: false,
+            });
+            return;
+        }
+
+        const result = await this.eventService.getVisibleEventLists(
+            category,
+            timeframe,
+            user.userId,
+            user.role,
+        );
+
         if (result.ok === false) {
             res.status(400).json({ error: result.value.message });
             return;
@@ -498,7 +566,6 @@ class EventController implements IEventController {
     }
     }
 
-    
     async toggleRSVPFromForm(
         req: Request,
         res: Response,

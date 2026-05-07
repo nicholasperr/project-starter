@@ -83,7 +83,7 @@
   </form>
 
   <div id="event-list">
-  <%- include("../partials/event-list") %>
+    <%- include("../partials/event-list", { events, draftEvents: draftEvents ?? [], session }) %>
   </div>
 
   <div class="mt-8 flex justify-center">
