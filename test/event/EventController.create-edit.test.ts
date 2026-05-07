@@ -125,7 +125,7 @@ describe("Event creation and editing integration", () => {
 
     const eventId = await findEventIdByTitle(eventRepository, originalTitle);
 
-    const editPage = await agent.get(`/events/${eventId}/edit`).expect(200);
+    const editPage = await agent.get(`/events/${eventId}?edit=true`).expect(200);
     expect(editPage.text).toContain("Edit Event");
     expect(editPage.text).toContain(originalTitle);
 

@@ -265,8 +265,8 @@ class EventController implements IEventController {
 
         if (values.capacity !== undefined && values.capacity !== "") {
             const parsed = Number(values.capacity);
-            if (Number.isNaN(parsed) || !Number.isInteger(parsed) || parsed < 0) {
-                errors.capacity = "Capacity must be a non-negative whole number.";
+            if (Number.isNaN(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
+                errors.capacity = "Capacity must be a positive whole number.";
             }
         }
 
