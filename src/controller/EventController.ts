@@ -9,7 +9,6 @@ import { EventError, Unauthorized, InvalidInput } from "../lib/errors";
 export interface IEventController {
     createEvent(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
     showEventCreateForm(res: Response, session: IAppBrowserSession, pageError?: string, formData?: any):  Promise<void>;
-    showEventEditForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
     editEvent(req: Request, res: Response):  Promise<void>;
     toggleRSVPFromForm(
         req: Request,
@@ -37,8 +36,6 @@ class EventController implements IEventController {
     async showEventDetail(req: Request, res: Response, session: IAppBrowserSession){
         this.logger.info(`Showing event detail for event ID: ${req.params.id}`);
         const eventId = Number(req.params.id);
-        console.log("Event ID from params:", req.params.id, "Parsed event ID:", eventId);
-
         if (Number.isNaN(eventId)) {
             res.status(400).render("partials/error", {
                 message: "Invalid event id",
@@ -89,6 +86,7 @@ class EventController implements IEventController {
             currentRsvp,
             errorMessage: null,
             organizerName,
+            editMode: req.query.edit === "true",
         });    
     }
 
@@ -240,44 +238,6 @@ class EventController implements IEventController {
         });
     }
 
-    async showEventEditForm(req: Request, res: Response, session: IAppBrowserSession) {
-        const eventId = Number(req.params.id);
-        if (Number.isNaN(eventId)) {
-            res.status(400).render("partials/error", {
-                message: InvalidInput("Invalid event id").message,
-                layout: false,
-            });
-            return;
-        }
-
-        const result = await this.eventService.getEventById(eventId);
-        if (!result.ok) {
-            const error = result.value as EventError;
-            let statusCode = 400;
-            if (error.name === 'EventNotFound') statusCode = 404;
-            res.status(statusCode).render("partials/error", {
-                message: error.message,
-                layout: false,
-            });
-            return;
-        }
-        if (session.authenticatedUser?.userId !== result.value.organizerId && session.authenticatedUser?.role !== "admin") {
-            res.status(403).render("partials/error", {
-                message: Unauthorized("You do not have permission to edit this event").message,
-                layout: false,
-            });
-            return;
-        }
-
-        res.render("event/edit", {
-            pageTitle: "Edit Event",
-            event: result.value,
-            session: session,
-            formValues: {},
-            errors: {},
-        });
-    }
-
     private validateEventForm(values: Record<string, any>) {
         const errors: Record<string, string> = {};
 
@@ -303,8 +263,8 @@ class EventController implements IEventController {
 
         if (values.capacity !== undefined && values.capacity !== "") {
             const parsed = Number(values.capacity);
-            if (Number.isNaN(parsed) || !Number.isInteger(parsed) || parsed < 0) {
-                errors.capacity = "Capacity must be a non-negative whole number.";
+            if (Number.isNaN(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
+                errors.capacity = "Capacity must be a positive whole number.";
             }
         }
 
@@ -374,6 +334,11 @@ class EventController implements IEventController {
                 return;
             }
 
+            const organizerNameResult = await this.eventService.getOrganizerDisplayName(existingResult.value.organizerId);
+            const organizerName = organizerNameResult.ok
+                ? organizerNameResult.value
+                : existingResult.value.organizerId;
+
             res.status(400).render("event/edit", {
                 pageTitle: "Edit Event",
                 event: {
@@ -383,6 +348,7 @@ class EventController implements IEventController {
                 session: (req as any).session,
                 formValues,
                 errors,
+                organizerName,
             });
             return;
         }

@@ -12,116 +12,357 @@
           : "border-[#7ec0ce] text-[#7ec0ce]";
 %>
 
-<section class="mb-5 p-6 border-2 border-[white] rounded-2xl bg-[#16213e] shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce]">
-  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-    <div>
-      <p class="text-sm font-bold uppercase tracking-[0.16em] text-[#7ec0ce]">
-        Event Detail
-      </p>
+<div x-data="{
+  isEditing: <%= editMode ? 'true' : 'false' %>,
+  hasUnsavedChanges: false,
+  originalStatus: '<%= event.status %>',
+  status: '<%= event.status %>',
+  statusClass() {
+    return this.status === 'published'
+      ? 'border-green-300 text-green-300'
+      : this.status === 'draft'
+        ? 'border-yellow-300 text-yellow-300'
+        : this.status === 'cancelled'
+          ? 'border-red-300 text-red-300'
+          : 'border-[#7ec0ce] text-[#7ec0ce]';
+  },
+  init() {
+    window.addEventListener('beforeunload', (e) => {
+      if (this.hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    });
+  },
+  markAsChanged() {
+    this.hasUnsavedChanges = true;
+  },
+  resetChanges() {
+    this.hasUnsavedChanges = false;
+    this.status = this.originalStatus;
+  },
+  clearUnsavedChanges() {
+    this.hasUnsavedChanges = false;
+  },
+  toggleEdit() {
+    this.isEditing = !this.isEditing;
+    if (!this.isEditing) {
+      this.resetChanges();
+    }
+  }
+}">
+  <!-- Show Mode -->
+  <div x-show="!isEditing">
+    <section class="mb-5 p-6 border-2 border-[white] rounded-2xl bg-[#16213e] shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce]">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p class="text-sm font-bold uppercase tracking-[0.16em] text-[#7ec0ce]">
+            Event Detail
+          </p>
 
-      <h1 class="mt-3 text-4xl font-bold text-[#f1f1f1]">
-        <%= event.title %>
-      </h1>
+          <h1 class="mt-3 text-4xl font-bold text-[#f1f1f1]">
+            <%= event.title %>
+          </h1>
 
-      <p class="mt-3 max-w-3xl text-[#9bb7d4]">
-        <%= event.description %>
-      </p>
-    </div>
+          <p class="mt-3 max-w-3xl text-[#9bb7d4]">
+            <%= event.description %>
+          </p>
+        </div>
 
-    <span class="inline-flex w-fit rounded-full border px-4 py-1 text-sm font-bold capitalize <%= statusClass %>">
-      <%= event.status %>
-    </span>
+        <span class="inline-flex w-fit rounded-full border px-4 py-1 text-sm font-bold capitalize <%= statusClass %>">
+          <%= event.status %>
+        </span>
+      </div>
+    </section>
+
+    <section class="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
+      <section class="rounded-2xl border-2 border-[white] bg-[#16213e] p-6 shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce]">
+        <h2 class="mb-5 text-2xl font-bold text-[#f1f1f1]">
+          Details
+        </h2>
+
+        <dl class="grid gap-4 sm:grid-cols-2">
+          <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
+            <dt class="font-bold text-[#7ec0ce]">Location</dt>
+            <dd class="mt-1 text-[#f1f1f1]"><%= event.location %></dd>
+          </div>
+
+          <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
+            <dt class="font-bold text-[#7ec0ce]">Category</dt>
+            <dd class="mt-1 capitalize text-[#f1f1f1]"><%= event.category %></dd>
+          </div>
+
+          <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
+            <dt class="font-bold text-[#7ec0ce]">Starts</dt>
+            <dd class="mt-1 text-[#f1f1f1]"><%= event.startDatetime.toLocaleString() %></dd>
+          </div>
+
+          <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
+            <dt class="font-bold text-[#7ec0ce]">Ends</dt>
+            <dd class="mt-1 text-[#f1f1f1]"><%= event.endDatetime.toLocaleString() %></dd>
+          </div>
+
+          <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
+            <dt class="font-bold text-[#7ec0ce]">Capacity</dt>
+            <dd class="mt-1 text-[#f1f1f1]"><%= event.capacity === null ? "No limit" : event.capacity %></dd>
+          </div>
+
+          <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
+            <dt class="font-bold text-[#7ec0ce]">Organizer</dt>
+            <dd class="mt-1 break-words text-[#f1f1f1]"><%= organizerName %></dd>
+          </div>    
+        </dl>
+      </section>
+
+      <section class="rounded-2xl border-2 border-[white] bg-[#16213e] p-6 shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce]">
+        <h2 class="mb-5 text-2xl font-bold text-[#f1f1f1]">
+          Actions
+        </h2>
+
+        <div class="p-0">
+          <div id="rsvp-action">
+            <%- include("../partials/rsvp-action", { event, session, currentRsvp, errorMessage }) %>
+          </div>
+
+          <% if (canManage && event.status === "draft") { %>
+            <form method="POST" action="/events/<%= event.id %>/publish" >
+              <button
+                type="submit"
+                class="inline-flex min-w-[180px] justify-center rounded-lg bg-[#df3a9e] text-[#f1f1f1] px-6 py-2 font-bold hover:bg-[#d12c90]"
+              >
+                Publish Event
+              </button>
+            </form>
+            <button
+              @click="toggleEdit()"
+              class="mt-4 inline-flex min-w-[180px] justify-center rounded-lg border-2 border-[#df3a9e] text-[#df3a9e] bg-transparent px-6 py-2 font-bold hover:bg-[#242945] cursor-pointer"
+            >
+              Edit Event
+            </button>
+          <% } %>
+
+
+
+          <% if (canManage && event.status === "published") { %>
+            <button
+              @click="toggleEdit()"
+              class="inline-flex min-w-[180px] justify-center rounded-lg bg-[#df3a9e] text-[#f1f1f1] px-6 py-2 font-bold hover:bg-[#d12c90]"
+            >
+              Edit Event
+            </button>
+            <form method="POST" action="/events/<%= event.id %>/cancel">
+              <button
+                type="submit"
+                class="mt-4 inline-flex min-w-[180px] justify-center rounded-lg border-2 border-[#df3a9e] text-[#df3a9e] bg-transparent px-6 py-2 font-bold hover:bg-[#242945] cursor-pointer"
+              >
+                Cancel Event
+              </button>
+            </form>
+          <% } %>
+
+          <% if (canManage && event.status != "published" && event.status != "draft") { %>
+            <button
+              @click="toggleEdit()"
+              class="inline-flex min-w-[180px] justify-center rounded-lg bg-[#df3a9e] text-[#f1f1f1] px-6 py-2 font-bold hover:bg-[#d12c90]"
+            >
+              Edit Event
+            </button>
+          <% } %>
+
+          
+
+          <% if (!canManage && (!user || user.role !== "user")) { %>
+            <p class="mt-3 text-sm text-[#9bb7d4]">
+              No actions available for your role.
+            </p>
+          <% } %>
+        </div>
+      </section>
+    </section>
   </div>
-</section>
 
-<section class="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
-  <section class="rounded-2xl border-2 border-[white] bg-[#16213e] p-6 shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce]">
-    <h2 class="mb-5 text-2xl font-bold text-[#f1f1f1]">
-      Details
-    </h2>
+  <!-- Edit Mode -->
+  <div x-show="isEditing" x-transition>
+    <form action="/events/<%= event.id %>" method="post" @submit="clearUnsavedChanges()" class="space-y-6">
+      <section class="mb-5 p-6 border-2 border-[white] rounded-2xl bg-[#16213e] shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce]">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div class="flex-1">
+            <p class="text-sm font-bold uppercase tracking-[0.16em] text-[#7ec0ce]">
+              Event Detail
+            </p>
+            <span
+              x-show="isEditing"
+              :class="['inline-flex w-fit rounded-full border px-4 py-1 text-sm font-bold capitalize', statusClass()]"
+              x-text="status"
+              class="mt-3"
+            ></span>
 
-    <dl class="grid gap-4 sm:grid-cols-2">
-      <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
-        <dt class="font-bold text-[#7ec0ce]">Location</dt>
-        <dd class="mt-1 text-[#f1f1f1]"><%= event.location %></dd>
-      </div>
+            <label class="block mt-3">
+              <span class="text-sm font-bold text-[#7ec0ce] mb-2 block">Title</span>
+              <input
+                type="text"
+                name="title"
+                value="<%= event.title %>"
+                @input="markAsChanged()"
+                class="w-full rounded-lg bg-[#0c1a35] border border-[#33527c] text-[#f1f1f1] px-4 py-2 text-4xl font-bold focus:border-[#7ec0ce] focus:outline-none"
+                required
+              />
+            </label>
 
-      <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
-        <dt class="font-bold text-[#7ec0ce]">Category</dt>
-        <dd class="mt-1 capitalize text-[#f1f1f1]"><%= event.category %></dd>
-      </div>
+            <label class="block mt-3">
+              <span class="text-sm font-bold text-[#7ec0ce] mb-2 block">Description</span>
+              <textarea
+                name="description"
+                rows="4"
+                @input="markAsChanged()"
+                class="w-full rounded-lg bg-[#0c1a35] border border-[#33527c] text-[#9bb7d4] px-4 py-2 focus:border-[#7ec0ce] focus:outline-none"
+                required
+              ><%= event.description %></textarea>
+            </label>
+          </div>
 
-      <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
-        <dt class="font-bold text-[#7ec0ce]">Starts</dt>
-        <dd class="mt-1 text-[#f1f1f1]"><%= event.startDatetime.toLocaleString() %></dd>
-      </div>
+          <div class="flex flex-col gap-2">
+            <span class="text-sm font-bold text-[#7ec0ce]">Status</span>
+            <select
+              name="status"
+              x-model="status"
+              @change="markAsChanged()"
+              :class="['rounded-full border px-4 py-1 text-sm font-bold capitalize bg-[#16213e] focus:outline-none', statusClass()]"
+            >
+              <option value="draft" <%= event.status === 'draft' ? 'selected' : '' %>>draft</option>
+              <option value="published" <%= event.status === 'published' ? 'selected' : '' %>>published</option>
+              <option value="cancelled" <%= event.status === 'cancelled' ? 'selected' : '' %>>cancelled</option>
+              <option value="past" <%= event.status === 'past' ? 'selected' : '' %>>past</option>
+            </select>
+          </div>
+        </div>
+      </section>
 
-      <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
-        <dt class="font-bold text-[#7ec0ce]">Ends</dt>
-        <dd class="mt-1 text-[#f1f1f1]"><%= event.endDatetime.toLocaleString() %></dd>
-      </div>
+      <section class="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
+        <section class="rounded-2xl border-2 border-[white] bg-[#16213e] p-6 shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce]">
+          <h2 class="mb-5 text-2xl font-bold text-[#f1f1f1]">
+            Details
+          </h2>
 
-      <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
-        <dt class="font-bold text-[#7ec0ce]">Capacity</dt>
-        <dd class="mt-1 text-[#f1f1f1]"><%= event.capacity === null ? "No limit" : event.capacity %></dd>
-      </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="block rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
+              <span class="font-bold text-[#7ec0ce]">Location</span>
+              <input
+                type="text"
+                name="location"
+                value="<%= event.location %>"
+                @input="markAsChanged()"
+                class="mt-1 w-full bg-transparent text-[#f1f1f1] border-none focus:outline-none"
+                required
+              />
+            </label>
 
-      <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
-        <dt class="font-bold text-[#7ec0ce]">Organizer</dt>
-        <dd class="mt-1 break-words text-[#f1f1f1]"><%= organizerName %></dd>
-      </div>    
-    </dl>
-  </section>
+            <label class="block rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
+              <span class="font-bold text-[#7ec0ce]">Category</span>
+              <select
+                name="category"
+                @change="markAsChanged()"
+                class="mt-1 w-full bg-[#0c1a35] text-[#f1f1f1] px-3 py-2 focus:outline-none capitalize"
+                required
+              >
+                <option value="music" <%= event.category === 'music' ? 'selected' : '' %>>music</option>
+                <option value="sports" <%= event.category === 'sports' ? 'selected' : '' %>>sports</option>
+                <option value="technology" <%= event.category === 'technology' ? 'selected' : '' %>>technology</option>
+                <option value="art" <%= event.category === 'art' ? 'selected' : '' %>>art</option>
+                <option value="education" <%= event.category === 'education' ? 'selected' : '' %>>education</option>
+                <option value="health" <%= event.category === 'health' ? 'selected' : '' %>>health</option>
+                <option value="business" <%= event.category === 'business' ? 'selected' : '' %>>business</option>
+                <option value="food" <%= event.category === 'food' ? 'selected' : '' %>>food</option>
+                <option value="other" <%= event.category === 'other' ? 'selected' : '' %>>other</option>
+              </select>
+            </label>
 
-  <section class="rounded-2xl border-2 border-[white] bg-[#16213e] p-6 shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce]">
-    <h2 class="mb-5 text-2xl font-bold text-[#f1f1f1]">
-      Actions
-    </h2>
+            <label class="block rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
+              <span class="font-bold text-[#7ec0ce]">Starts</span>
+              <input
+                type="datetime-local"
+                name="startDatetime"
+                value="<%= (() => {
+                  const d = new Date(event.startDatetime);
+                  const year = d.getFullYear();
+                  const month = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  const hours = String(d.getHours()).padStart(2, '0');
+                  const minutes = String(d.getMinutes()).padStart(2, '0');
+                  return `${year}-${month}-${day}T${hours}:${minutes}`;
+                })() %>"
+                @change="markAsChanged()"
+                class="mt-1 w-full bg-transparent text-[#f1f1f1] border-none focus:outline-none"
+                required
+              />
+            </label>
 
-    <div class="p-0">
-      <div id="rsvp-action">
-        <%- include("../partials/rsvp-action", { event, session, currentRsvp, errorMessage }) %>
-      </div>
+            <label class="block rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
+              <span class="font-bold text-[#7ec0ce]">Ends</span>
+              <input
+                type="datetime-local"
+                name="endDatetime"
+                value="<%= (() => {
+                  const d = new Date(event.endDatetime);
+                  const year = d.getFullYear();
+                  const month = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  const hours = String(d.getHours()).padStart(2, '0');
+                  const minutes = String(d.getMinutes()).padStart(2, '0');
+                  return `${year}-${month}-${day}T${hours}:${minutes}`;
+                })() %>"
+                @change="markAsChanged()"
+                class="mt-1 w-full bg-transparent text-[#f1f1f1] border-none focus:outline-none"
+                required
+              />
+            </label>
 
-      <% if (canManage && event.status === "draft") { %>
-        <form method="POST" action="/events/<%= event.id %>/publish" class="mt-4">
-          <button
-            type="submit"
-            class="w-full rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#e6faff] px-4 py-2 font-bold hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce]"
-          >
-            Publish Event
-          </button>
-        </form>
-      <% } %>
+            <label class="block rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
+              <span class="font-bold text-[#7ec0ce]">Capacity</span>
+              <input
+                type="number"
+                name="capacity"
+                value="<%= event.capacity ?? '' %>"
+                @input="markAsChanged()"
+                class="mt-1 w-full bg-transparent text-[#f1f1f1] border-none focus:outline-none"
+                placeholder="No limit"
+              />
+            </label>
 
-      <% if (canManage && event.status === "published") { %>
-        <form method="POST" action="/events/<%= event.id %>/cancel" class="mt-4">
-          <button
-            type="submit"
-            class="w-full cursor-pointer rounded-lg bg-[#df3a9e] px-4 py-2 font-bold text-[#f1f1f1] hover:bg-[#d12c90]"
-          >
-            Cancel Event
-          </button>
-        </form>
-      <% } %>
+            <div class="rounded-2xl border border-[#33527c] bg-[#0c1a35] p-4">
+              <dt class="font-bold text-[#7ec0ce]">Organizer</dt>
+              <dd class="mt-1 break-words text-[#f1f1f1]"><%= organizerName %></dd>
+            </div>
+          </div>
+        </section>
 
-      <% if (canManage) { %>
-        <a
-          href="/events/<%= event.id %>/edit"
-          class="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#e6faff] px-4 py-2 font-bold no-underline hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce]"
-        >
-          Edit Event
-        </a>
-      <% } %>
+        <section class="rounded-2xl border-2 border-[white] bg-[#16213e] p-6 shadow-[0_0_2px_#7ec0ce,inset_0_0_2px_#7ec0ce,0_0_5px_#7ec0ce,0_0_12px_#7ec0ce,0_0_20px_#7ec0ce]">
+          <h2 class="mb-5 text-2xl font-bold text-[#f1f1f1]">
+            Actions
+          </h2>
 
-      <% if (!canManage && (!user || user.role !== "user")) { %>
-        <p class="mt-3 text-sm text-[#9bb7d4]">
-          No actions available for your role.
-        </p>
-      <% } %>
-    </div>
-  </section>
-</section>
+          <div class="flex flex-col gap-4">
+            <button
+              type="submit"
+              class="block w-full max-w-[220px] rounded-lg bg-[#df3a9e] text-[#f1f1f1] px-6 py-2 font-bold hover:bg-[#d12c90]"
+            >
+              Save Changes
+            </button>
+
+            <button
+              type="button"
+              @click="toggleEdit()"
+              class="block w-full max-w-[220px] rounded-lg border-2 border-[#df3a9e] text-[#df3a9e] bg-transparent px-6 py-2 font-bold hover:bg-[#242945] cursor-pointer"
+            >
+              Discard Changes
+            </button>
+          </div>
+        </section>
+      </section>
+    </form>
+  </div>
+</div>
 
 <section class="mt-8 flex justify-center">
   <a

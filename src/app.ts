@@ -400,18 +400,6 @@ class ExpressApp implements IApp {
       }),
     );
 
-    this.app.get(
-      "/events/:id/edit",
-      asyncHandler(async (req, res) => {
-        if (!this.requireAuthenticated(req, res)) {
-          return;
-        }
-        this.logger.info(`GET /events/${req.params.id}/edit`);
-        const browserSession = recordPageView(sessionStore(req));
-        this.eventController.showEventEditForm(req, res, browserSession);
-      }),
-    );
-
     this.app.post(
       "/events/:id",
       asyncHandler(async (req, res) => {
