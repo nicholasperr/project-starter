@@ -32,6 +32,7 @@ export interface IEventService {
     searchEvents(query: string): Promise<Result<IEvent[], EventError>>;
     getFilteredEvents(category?: Category, timeframe?: EventTimeFrame): Promise<Result<IEvent[], EventError>>;
     getMyEvents(userId: string, role: string): Promise<Result<IEvent[], EventError>>;
+    getVisibleEventLists(category: Category | undefined, timeframe: EventTimeFrame | undefined, userId: string, role: string): Promise<Result<{ publishedEvents: IEvent[]; draftEvents: IEvent[] }, EventError>>;
 }
 
 class EventService implements IEventService {
@@ -199,7 +200,7 @@ class EventService implements IEventService {
         return Ok(events)
     }
 
-        async getVisibleEventLists(
+    async getVisibleEventLists(
         category: Category | undefined,
         timeframe: EventTimeFrame | undefined,
         userId: string,
