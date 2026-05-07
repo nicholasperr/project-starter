@@ -36,8 +36,6 @@ class EventController implements IEventController {
     async showEventDetail(req: Request, res: Response, session: IAppBrowserSession){
         this.logger.info(`Showing event detail for event ID: ${req.params.id}`);
         const eventId = Number(req.params.id);
-        console.log("Event ID from params:", req.params.id, "Parsed event ID:", eventId);
-
         if (Number.isNaN(eventId)) {
             res.status(400).render("partials/error", {
                 message: "Invalid event id",

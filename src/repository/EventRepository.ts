@@ -84,7 +84,6 @@ class EventRepository implements IEventRepository {
                     organizerId,
                 },
             });
-            console.log("Created event:", event.id);
             return Ok(undefined);
         } catch (error) {
             console.error("Error creating event:", error);
