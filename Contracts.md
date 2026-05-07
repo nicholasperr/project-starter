@@ -9,8 +9,8 @@
 | title | string | Required |
 | description | string | Required |
 | location | string | Required |
-| category | "music" \| "sports" \| "academic" \| "social" \| "food" \| "arts" \| "networking" \| "other" | |
-| status | "draft" \| "published" \| "cancelled" \| "past" | |
+| category | `music` \| `sports` \| `academic` \| `social` \| `food` \| `arts` \| `networking` \| `other` | |
+| status | `draft` \| `published` \| `cancelled` \| `past` | |
 | capacity | number \| null | null means no limit |
 | startDatetime | Date | |
 | endDatetime | Date | |
@@ -20,165 +20,199 @@
 
 ---
 
-### RSVP 
+### RSVP
 | Field | Type | Notes |
 |---|---|---|
 | id | number | |
 | eventId | number | |
 | userId | string | |
-| status | "going" \| "waitlisted" \| "cancelled" | |
+| status | `going` \| `waitlisted` \| `cancelled` | |
 | createdAt | Date | |
-| updatedAt | Date | |
 
 ---
 
 ## Repository Interface Contracts
 
-### EventRepository.create(...)
-- **Returns**: `Result<undefined, EventError>`
+### `IEventRepository`
+
+#### `create(title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
 - **Notes**:
-  - Creates a new event in the database
-  - `status` defaults to `"draft"`
-  - Uses Prisma persistence
+  - Creates a new event in Prisma
+  - `status` defaults to `draft` in implementation
+  - `capacity` can be `null`
 
----
-
-### EventRepository.findById(id: number)
-- **Returns**: `Result<Event, EventError>`
+#### `findById(id)`
+- **Returns**: `Promise<Result<IEvent, EventError>>`
 - **Errors**:
   - `EventNotFound` if no event exists
   - `DatabaseError` on failure
 
----
-
-### EventRepository.update(id: number, params)
-- **Returns**: `Result<undefined, EventError>`
+#### `update(id, params)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
+- **Params**: `UpdateEventParams` may include partial updates for title, description, location, category, status, capacity, startDatetime, endDatetime
 - **Errors**:
   - `EventNotFound` if record does not exist
   - `DatabaseError` otherwise
 
----
-
-### EventRepository.delete(id: number)
-- **Returns**: `Result<undefined, EventError>`
+#### `delete(id)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
 - **Errors**:
   - `EventNotFound` if record does not exist
 
----
-
-### EventRepository.findAll()
-- **Returns**: `Result<Event[], EventError>`
+#### `findAll()`
+- **Returns**: `Promise<Result<IEvent[], EventError>>`
 - **Notes**:
-  - Returns all events from Prisma
-  - No filtering applied
+  - Returns all events from Prisma without filters
 
----
-
-### EventRepository.findFiltered(query, category?, timeframe?)
-- **Returns**: `Result<Event[], EventError>`
+#### `findFiltered(query, category?, timeframe?)`
+- **Returns**: `Promise<Result<IEvent[], EventError>>`
 - **Notes**:
   - Only returns **published + future events**
-  - Supports:
-    - text search (title, description, location)
-    - category filter
-    - timeframe filter (`this_week`, `this_weekend`, `all_upcoming`)
+  - Query search covers title, description, and location
+  - Supported timeframes:
+    - `this_week`
+    - `this_weekend`
+    - `all_upcoming`
+  - Supported categories: same as `Category` type
 
 ---
 
-## RSVP Repository Contracts
+### `IRSVPRepository`
 
-### RSVPRepository.create(eventId, userId, status)
-- **Returns**: `Result<undefined, EventError>`
+#### `create(eventId, userId, status)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
 - **Notes**:
-  - Creates RSVP
-  - Unique constraint: `(eventId, userId)`
+  - Creates a new RSVP via Prisma
+  - Unique constraint is effectively `(eventId, userId)` in the app logic
 
----
-
-### RSVPRepository.findByIds(userId, eventId)
-- **Returns**: `Result<RSVP, EventError>`
+#### `findByIds(userId, eventId)`
+- **Returns**: `Promise<Result<IRSVP, EventError>>`
 - **Errors**:
   - `EventNotFound` if RSVP does not exist
 
----
+#### `findByEventId(eventId)`
+- **Returns**: `Promise<Result<IRSVP[], EventError>>`
 
-### RSVPRepository.findByEventId(eventId)
-- **Returns**: `Result<RSVP[], EventError>`
-
----
-
-### RSVPRepository.findByUserIdWithEvents(userId)
-- **Returns**: `Result<{ rsvp, event }[], EventError>`
+#### `findByUserIdWithEvents(userId)`
+- **Returns**: `Promise<Result<DashboardRSVPItem[], EventError>>`
 - **Notes**:
-  - Used for dashboard
-  - Includes joined event data
+  - Returns RSVP records joined with event objects for dashboard rendering
 
----
+#### `update(id, status)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
 
-### RSVPRepository.update(id, status)
-- **Returns**: `Result<undefined, EventError>`
+#### `delete(id)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
 
----
-
-### RSVPRepository.delete(id)
-- **Returns**: `Result<undefined, EventError>`
-
----
-
-### RSVPRepository.findAll()
-- **Returns**: `Result<RSVP[], EventError>`
+#### `findAll()`
+- **Returns**: `Promise<Result<IRSVP[], EventError>>`
 
 ---
 
 ## Service Layer Contracts
 
-### EventService.getVisibleEventById(eventId, userId, role)
-- **Returns**: `Result<Event, EventError>`
-- **Rules**:
-  - Draft events visible only to:
-    - organizer
-    - admin
-  - Otherwise returns `Unauthorized`
+### `IEventService`
 
----
+#### `createEvent(title, description, location, category, status, capacity, startDatetime, endDatetime, organizerId)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
+- **Notes**:
+  - `status` defaults to `draft`
 
-### EventService.publishEvent(eventId, userId, role)
-- **Returns**: `Result<undefined, EventError>`
-- **Rules**:
-  - Only `"draft"` → `"published"`
-  - Only organizer or admin allowed
-  - Invalid transition → `InvalidState`
+#### `getEventById(eventId)`
+- **Returns**: `Promise<Result<IEvent, EventError>>`
 
----
+#### `getAllEvents()`
+- **Returns**: `Promise<Result<IEvent[], EventError>>`
 
-### EventService.cancelEvent(eventId, userId, role)
-- **Returns**: `Result<undefined, EventError>`
-- **Rules**:
-  - Only `"published"` → `"cancelled"`
-  - Only organizer or admin allowed
+#### `updateEvent(eventId, title?, description?, location?, category?, status?, capacity?, startDatetime?, endDatetime?)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
 
----
+#### `deleteEvent(eventId)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
 
-### EventService.toggleRSVP(eventId, userId)
-- **Returns**: `Result<undefined, EventError>`
+#### `createRSVP(eventId, userId, status)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
+
+#### `toggleRSVP(eventId, userId)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
 - **Behavior**:
-  - If no RSVP → create:
-    - `"going"` if capacity available
-    - `"waitlisted"` if full
-  - If existing:
-    - active → cancelled
-    - cancelled → reactivated
+  - If no existing RSVP:
+    - `going` if capacity is available
+    - `waitlisted` if capacity is full
+  - If existing RSVP:
+    - active status -> `cancelled`
+    - `cancelled` -> reactivate as `going` or `waitlisted` depending on capacity
 - **Errors**:
-  - `EventClosedError` if:
-    - event cancelled
-    - event started/past
+  - `EventClosedError` if the event is cancelled, past, or already started
 
----
+#### `getRSVPsForEvent(eventId)`
+- **Returns**: `Promise<Result<IRSVP[], EventError>>`
 
-### EventService.getUserDashboard(userId, role)
+#### `updateRSVP(eventId, userId, status)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
+
+#### `deleteRSVP(eventId, userId)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
+
+#### `getUserDashboard(userId, role)`
 - **Returns**:
 ```ts
 {
-  upcoming: { rsvp, event }[]
-  past: { rsvp, event }[]
+  upcoming: { rsvp: IRSVP; event: IEvent }[];
+  past: { rsvp: IRSVP; event: IEvent }[];
 }
+```
+- **Rules**:
+  - Only role `user` can access the dashboard
+  - Categorizes RSVPs into upcoming and past based on event status and start time
+
+#### `getVisibleEventById(eventId, userId, role)`
+- **Returns**: `Promise<Result<IEvent, EventError>>`
+- **Rules**:
+  - Draft events visible only to the organizer or admin
+  - Otherwise returns `Unauthorized`
+
+#### `getOrganizerDisplayName(organizerId)`
+- **Returns**: `Promise<Result<string, EventError>>`
+- **Notes**:
+  - Resolves an organizer display name from the user repository
+  - Falls back to `organizerId` when the user is not found
+
+#### `publishEvent(eventId, userId, role)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
+- **Rules**:
+  - Only transitions `draft` -> `published`
+  - Only organizer or admin may publish
+  - Invalid state returns `InvalidState`
+
+#### `cancelEvent(eventId, userId, role)`
+- **Returns**: `Promise<Result<undefined, EventError>>`
+- **Rules**:
+  - Only transitions `published` -> `cancelled`
+  - Only organizer or admin may cancel
+
+#### `getHomePageData(userId, role)`
+- **Returns**: `Promise<Result<{ upcomingEvents: IEvent[]; adminEvents: IEvent[]; userRsvps: { rsvp: IRSVP; event: IEvent }[] }, EventError>>`
+- **Notes**:
+  - Returns top home page cards for upcoming events and role-specific dashboard items
+  - For admins/staff returns events organized by the current user
+  - For regular users returns the first 4 upcoming RSVPs
+
+#### `searchEvents(query)`
+- **Returns**: `Promise<Result<IEvent[], EventError>>`
+- **Notes**:
+  - Rejects whitespace-only queries
+  - Uses repository filtering for published future events
+
+#### `getFilteredEvents(category?, timeframe?)`
+- **Returns**: `Promise<Result<IEvent[], EventError>>`
+- **Notes**:
+  - Filters only `published` events
+  - Supports category validation, timeframe validation, and upcoming event matching
+
+#### `getMyEvents(userId, role)`
+- **Returns**: `Promise<Result<IEvent[], EventError>>`
+- **Rules**:
+  - Only admins and staff can retrieve their own events
+  - Returns events where `organizerId === userId`
