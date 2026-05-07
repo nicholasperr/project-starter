@@ -13,7 +13,7 @@
 %>
 
 <div x-data="{
-  isEditing: false,
+  isEditing: <%= editMode ? 'true' : 'false' %>,
   hasUnsavedChanges: false,
   init() {
     window.addEventListener('beforeunload', (e) => {
@@ -119,20 +119,6 @@
                 Publish Event
               </button>
             </form>
-          <% } %>
-
-          <% if (canManage && event.status === "published") { %>
-            <form method="POST" action="/events/<%= event.id %>/cancel" class="mt-4">
-              <button
-                type="submit"
-                class="w-full cursor-pointer rounded-lg bg-[#df3a9e] px-4 py-2 font-bold text-[#f1f1f1] hover:bg-[#d12c90]"
-              >
-                Cancel Event
-              </button>
-            </form>
-          <% } %>
-
-          <% if (canManage) { %>
             <button
               @click="toggleEdit()"
               class="mt-4 inline-flex w-full items-center justify-center rounded-lg border-2 border-[#df3a9e] text-[#df3a9e] bg-transparent px-4 py-2 font-bold hover:bg-[#242945] cursor-pointer"
@@ -140,6 +126,27 @@
               Edit Event
             </button>
           <% } %>
+
+
+
+          <% if (canManage && event.status === "published") { %>
+            <button
+              @click="toggleEdit()"
+              class="w-full rounded-lg bg-[#df3a9e] text-[#f1f1f1] px-4 py-2 font-bold hover:bg-[#d12c90]"
+            >
+              Edit Event
+            </button>
+            <form method="POST" action="/events/<%= event.id %>/cancel" class="mt-4">
+              <button
+                type="submit"
+                class="mt-4 inline-flex w-full items-center justify-center rounded-lg border-2 border-[#df3a9e] text-[#df3a9e] bg-transparent px-4 py-2 font-bold hover:bg-[#242945] cursor-pointer"
+              >
+                Cancel Event
+              </button>
+            </form>
+          <% } %>
+
+          
 
           <% if (!canManage && (!user || user.role !== "user")) { %>
             <p class="mt-3 text-sm text-[#9bb7d4]">
@@ -225,7 +232,7 @@
               <select
                 name="category"
                 @change="markAsChanged()"
-                class="mt-1 w-full bg-transparent text-[#f1f1f1] border-none focus:outline-none capitalize"
+                class="mt-1 w-full bg-[#0c1a35] text-[#f1f1f1] px-3 py-2 focus:outline-none capitalize"
                 required
               >
                 <option value="music" <%= event.category === 'music' ? 'selected' : '' %>>music</option>
@@ -307,7 +314,7 @@
           <div class="space-y-4">
             <button
               type="submit"
-              class="w-full rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#e6faff] px-4 py-2 font-bold hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce]"
+              class="w-full rounded-lg bg-[#df3a9e] text-[#f1f1f1] px-4 py-2 font-bold hover:bg-[#d12c90]"
             >
               Save Event
             </button>
@@ -315,9 +322,9 @@
             <button
               type="button"
               @click="toggleEdit()"
-              class="w-full rounded-lg bg-[#16213e] text-[#7ec0ce] border-2 border-[#e6faff] px-4 py-2 font-bold hover:bg-[#214F82] shadow-[0_0_2px_#7ec0ce,0_0_5px_#7ec0ce] cursor-pointer"
+              class="mt-4 inline-flex w-full items-center justify-center rounded-lg border-2 border-[#df3a9e] text-[#df3a9e] bg-transparent px-4 py-2 font-bold hover:bg-[#242945] cursor-pointer"
             >
-              Cancel Edit
+              Discard Changes
             </button>
           </div>
         </section>

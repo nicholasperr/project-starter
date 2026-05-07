@@ -9,7 +9,6 @@ import { EventError, Unauthorized, InvalidInput } from "../lib/errors";
 export interface IEventController {
     createEvent(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
     showEventCreateForm(res: Response, session: IAppBrowserSession, pageError?: string, formData?: any):  Promise<void>;
-    showEventEditForm(req: Request, res: Response, session: IAppBrowserSession):  Promise<void>;
     editEvent(req: Request, res: Response):  Promise<void>;
     toggleRSVPFromForm(
         req: Request,
@@ -89,6 +88,7 @@ class EventController implements IEventController {
             currentRsvp,
             errorMessage: null,
             organizerName,
+            editMode: req.query.edit === "true",
         });    
     }
 
@@ -237,50 +237,6 @@ class EventController implements IEventController {
             formValues: formData ?? {},
             errors: {},
             pageError: pageError ?? null,
-        });
-    }
-
-    async showEventEditForm(req: Request, res: Response, session: IAppBrowserSession) {
-        const eventId = Number(req.params.id);
-        if (Number.isNaN(eventId)) {
-            res.status(400).render("partials/error", {
-                message: InvalidInput("Invalid event id").message,
-                layout: false,
-            });
-            return;
-        }
-
-        const result = await this.eventService.getEventById(eventId);
-        if (!result.ok) {
-            const error = result.value as EventError;
-            let statusCode = 400;
-            if (error.name === 'EventNotFound') statusCode = 404;
-            res.status(statusCode).render("partials/error", {
-                message: error.message,
-                layout: false,
-            });
-            return;
-        }
-        if (session.authenticatedUser?.userId !== result.value.organizerId && session.authenticatedUser?.role !== "admin") {
-            res.status(403).render("partials/error", {
-                message: Unauthorized("You do not have permission to edit this event").message,
-                layout: false,
-            });
-            return;
-        }
-
-        const organizerNameResult = await this.eventService.getOrganizerDisplayName(result.value.organizerId);
-        const organizerName = organizerNameResult.ok
-            ? organizerNameResult.value
-            : result.value.organizerId;
-
-        res.render("event/edit", {
-            pageTitle: "Edit Event",
-            event: result.value,
-            session: session,
-            formValues: {},
-            errors: {},
-            organizerName,
         });
     }
 
