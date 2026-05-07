@@ -5,6 +5,7 @@ import type { IAppBrowserSession } from "../session/AppSession";
 import { Category } from "../model/event";
 import { EventTimeFrame } from "../service/EventService";
 import { EventError, Unauthorized, InvalidInput } from "../lib/errors";
+import { IRSVP } from "../model/rsvp";
 
 export interface IEventController {
     createEvent(req: Request, res: Response, session: IAppBrowserSession): Promise<void>;
